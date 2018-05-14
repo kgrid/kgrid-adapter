@@ -41,14 +41,13 @@ public class JavascriptAdapter implements Adapter, AdapterSupport {
 
     ScriptContext context = new SimpleScriptContext();
     context.setBindings(engine.createBindings(), ScriptContext.ENGINE_SCOPE);
-    Path scriptPath = resourcePath.resolve(endpointName + ".js");
-    byte[] binary = cdoStore.getBinary(scriptPath);
+    byte[] binary = cdoStore.getBinary(resourcePath);
     try {
       CompiledScript script = ((Compilable) engine)
           .compile(new String(binary, Charset.defaultCharset()));
       script.eval(context);
     } catch (ScriptException e) {
-      throw new AdapterException("unable to compile script " + scriptPath + " : " +e.getMessage(), e);
+      throw new AdapterException("unable to compile script " + resourcePath + " : " +e.getMessage(), e);
     }
 
     ScriptObjectMirror mirror = (ScriptObjectMirror) context
