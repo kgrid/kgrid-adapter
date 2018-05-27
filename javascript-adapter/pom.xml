@@ -13,13 +13,14 @@
     <dependency>
       <groupId>org.kgrid</groupId>
       <artifactId>adapter-api</artifactId>
-      <version>0.0.1-SNAPSHOT</version>
+      <version>${revision}</version>
     </dependency>
   </dependencies>
 
   <parent>
     <groupId>org.kgrid</groupId>
     <artifactId>kgrid-adapter</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
   </parent>
 
   <!-- More Project Information -->
