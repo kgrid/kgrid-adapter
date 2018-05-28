@@ -6,14 +6,14 @@
 
   <!-- The Basics -->
   <artifactId>javascript-adapter</artifactId>
-  <version>${revision}</version>
+  <version>${parent.version}</version>
   <packaging>jar</packaging>
 
   <dependencies>
     <dependency>
       <groupId>org.kgrid</groupId>
       <artifactId>adapter-api</artifactId>
-      <version>${revision}</version>
+      <version>${parent.version}</version>
     </dependency>
   </dependencies>
 
