@@ -17,8 +17,6 @@ jobs:
   ##############
   build:
 
-    working_directory: ~/repo
-
     docker:
       - image: circleci/openjdk:11-jdk
 
@@ -84,28 +82,28 @@ jobs:
       MAVEN_OPTS: -Xmx3200m
 
     steps:
-      -
+
       - attach_workspace:
           at: ~/project
 
-    # Will normally run deploy but if triggered with Release will prepare and perform maven release
-    - run:
-        name: Deploy/Release
-        command: |
-          echo $GPG_SECRET_KEYS | base64 --decode | gpg --import --no-tty --batch --yes
-          if [ $RELEASE ]; then
-              git config --global user.email "$GIT_USER_EMAIL"
-              git config --global user.name "$GIT_USER_NAME"
-              mvn release:clean release:prepare --projects $MODULE --batch-mode -DreleaseVersion=$RELEASE -DdevelopmentVersion=$NEXT release:perform -P ci -s .circleci/settings.xml
-          else
-              mvn clean deploy  -P ci -s .circleci/settings.xml
-          fi
+      # Will normally run deploy but if triggered with Release will prepare and perform maven release
+      - run:
+          name: Deploy/Release
+          command: |
+            echo $GPG_SECRET_KEYS | base64 --decode | gpg --import --no-tty --batch --yes
+            if [ $RELEASE ]; then
+                git config --global user.email "$GIT_USER_EMAIL"
+                git config --global user.name "$GIT_USER_NAME"
+                mvn release:clean release:prepare --projects $MODULE --batch-mode -DreleaseVersion=$RELEASE -DdevelopmentVersion=$NEXT release:perform -P ci -s .circleci/settings.xml
+            else
+                mvn clean deploy  -P ci -s .circleci/settings.xml
+            fi
 
-    # Tigger Builds of Activator so the newest snapshot gets used
-    - run:
-        name: Trigger Activator and Library to build
-        command: |
-          curl -v -X POST --header 'Content-Type:application/json' \
-            https://circleci.com/api/v1.1/project/github/kgrid/kgrid-activator/tree/master?circle-token=$CIRCLECI_TOKEN
+      # Tigger Builds of Activator so the newest snapshot gets used
+      - run:
+          name: Trigger Activator and Library to build
+          command: |
+            curl -v -X POST --header 'Content-Type:application/json' \
+              https://circleci.com/api/v1.1/project/github/kgrid/kgrid-activator/tree/master?circle-token=$CIRCLECI_TOKEN
 
 
