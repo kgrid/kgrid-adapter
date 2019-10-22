@@ -58,6 +58,17 @@ jobs:
             find . -type f -regex ".*/target/surefire-reports/.*xml" -exec cp {} ~/junit/ \;
           when: always
 
+      # If Triggered with Release will prepare and perform maven release
+      - run:
+          name: Deploy/Release
+          command: |
+            echo $GPG_SECRET_KEYS | base64 --decode | gpg --import --no-tty --batch --yes
+            if [ $RELEASE ]; then
+                git config --global user.email "$GIT_USER_EMAIL"
+                git config --global user.name "$GIT_USER_NAME"
+                mvn release:clean release:prepare --projects $MODULE --batch-mode -DreleaseVersion=$RELEASE -DdevelopmentVersion=$NEXT release:perform -P ci -s .circleci/settings.xml
+            fi
+
       - store_test_results:
           path: ~/junit
 
@@ -86,18 +97,12 @@ jobs:
       - attach_workspace:
           at: ~/project
 
-      # Will normally run deploy but if triggered with Release will prepare and perform maven release
+      # Run deploy
       - run:
           name: Deploy/Release
           command: |
             echo $GPG_SECRET_KEYS | base64 --decode | gpg --import --no-tty --batch --yes
-            if [ $RELEASE ]; then
-                git config --global user.email "$GIT_USER_EMAIL"
-                git config --global user.name "$GIT_USER_NAME"
-                mvn release:clean release:prepare --projects $MODULE --batch-mode -DreleaseVersion=$RELEASE -DdevelopmentVersion=$NEXT release:perform -P ci -s .circleci/settings.xml
-            else
-                mvn clean deploy  -P ci -s .circleci/settings.xml
-            fi
+            mvn clean deploy  -P ci -s .circleci/settings.xml
 
       # Tigger Builds of Activator so the newest snapshot gets used
       - run:
