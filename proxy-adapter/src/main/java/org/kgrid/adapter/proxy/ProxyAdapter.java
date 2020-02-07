@@ -1,82 +1,86 @@
 package org.kgrid.adapter.proxy;
 
-import java.net.URI;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.nio.file.Path;
-import org.apache.http.client.HttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
+import org.kgrid.adapter.api.ActivationContext;
 import org.kgrid.adapter.api.Adapter;
-import org.kgrid.adapter.api.AdapterSupport;
+import org.kgrid.adapter.api.AdapterException;
 import org.kgrid.adapter.api.Executor;
-import org.kgrid.shelf.repository.CompoundDigitalObjectStore;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
-public class ProxyAdapter implements Adapter, AdapterSupport {
+public class ProxyAdapter implements Adapter {
 
-  // Todo: have this pass through adapter types supported by the proxy?
+  private String remoteServer;
+
+  private boolean remoteUp = false;
+
+  RestTemplate restTemplate = new RestTemplate();
+
+  ActivationContext activationContext;
+
   @Override
   public String getType() {
     return "PROXY";
   }
 
-  CompoundDigitalObjectStore cdoStore;
-
   @Override
-  public void initialize() {
+  public void initialize(ActivationContext context) {
+
+    try {
+      // Check that the remote server is up
+      remoteServer = context.getProperty("kgrid.adapter.proxy.url");
+      ResponseEntity<String> resp = restTemplate.getForEntity(remoteServer, String.class);
+      if (resp.getStatusCode() != HttpStatus.OK) {
+        throw new AdapterException(
+            "Remote execution environment not online, no response from " + remoteServer);
+      }
+
+    } catch (HttpClientErrorException | ResourceAccessException e) {
+      throw new AdapterException("Remote execution environment not online, no response from " + remoteServer);
+    }
+
+    remoteUp = true;
+    activationContext = context;
 
   }
 
-  /*
-   * Right now just sends a post request to the url specified in the resource metadata + the endpoint
-   * passes through the body of the request and returns the body of the response.
-   * Let the RestTemplate handle http errors.
-   */
   @Override
   public Executor activate(Path resource, String endpoint) {
-    try {
-      HttpClient instance = HttpClientBuilder.create().build();
-      RestTemplate restTemplate = new RestTemplate(
-          new HttpComponentsClientHttpRequestFactory(instance));
-      HttpHeaders headers = new HttpHeaders();
-      headers.setContentType(MediaType.APPLICATION_JSON);
 
-      return new Executor() {
-        @Override
-        public Object execute(Object input) {
-          HttpEntity<Object> entity = new HttpEntity<>(input, headers);
-          String serverURL = cdoStore.getMetadata(resource.getParent().getParent().toString()).get("resource").asText();
-          URI proxyEndpoint = URI.create(serverURL + "/" + endpoint);
-          ResponseEntity<String> response =
-              restTemplate.exchange(proxyEndpoint, HttpMethod.POST, entity, String.class);
-          return response.getBody();
+    ByteArrayResource byteArray = new ByteArrayResource(activationContext.getBinary(
+        resource.toString()));
+    HttpEntity<ByteArrayResource> request = new HttpEntity<>(byteArray);
+    JsonNode activationResult = restTemplate.postForObject(remoteServer + resource, request, JsonNode.class);
+    String remoteEndpoint = activationResult.get("handle").asText();
+
+    return new Executor() {
+      @Override
+      public Object execute(Object input) {
+
+        try {
+          Object result = restTemplate
+              .postForObject(remoteServer + remoteEndpoint, input, JsonNode.class);
+          return result;
+        } catch (HttpClientErrorException | ResourceAccessException e ) {
+          throw new AdapterException("Cannot access object payload in remote enviornment");
         }
-      };
-
-    } catch (HttpClientErrorException hcex) {
-      throw new IllegalArgumentException("Cannot run proxy ko " + hcex, hcex);
-    }
+      }
+    };
   }
 
-  /*
-   * Would like this to check the remote server but the way it works now is that each object can point
-   * to a different server
-   */
   @Override
   public String status() {
-    if(cdoStore != null) {
+    if(remoteUp && activationContext != null) {
       return "UP" ;
     } else {
       return "DOWN";
     }
   }
 
-  public void setCdoStore(CompoundDigitalObjectStore cdoStore) {
-    this.cdoStore = cdoStore;
-  }
 }

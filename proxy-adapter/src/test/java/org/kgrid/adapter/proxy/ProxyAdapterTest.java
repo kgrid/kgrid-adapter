@@ -1,85 +1,135 @@
 package org.kgrid.adapter.proxy;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.post;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static org.junit.Assert.assertEquals;
-
-import com.github.tomakehurst.wiremock.junit.WireMockClassRule;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.UUID;
 import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.kgrid.adapter.api.ActivationContext;
+import org.kgrid.adapter.api.AdapterException;
 import org.kgrid.adapter.api.Executor;
+import org.kgrid.shelf.domain.ArkId;
 import org.kgrid.shelf.repository.CompoundDigitalObjectStore;
 import org.kgrid.shelf.repository.FilesystemCDOStore;
-import org.springframework.http.MediaType;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.Spy;
+import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.core.io.support.ResourcePatternResolver;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mock.env.MockEnvironment;
+import org.springframework.web.client.RestTemplate;
 
-/*
- NOTE THESE TESTS WILL FAIL IF YOU HAVE A SERVER RUNNING AT localhost:8888!!!!!!
- */
+import static org.junit.Assert.assertEquals;
+
+@RunWith(MockitoJUnitRunner.class)
 public class ProxyAdapterTest {
+
+  @Mock
+  RestTemplate restTemplate;
+
+  @InjectMocks
+  @Spy
+  private ProxyAdapter proxyAdapter = new ProxyAdapter();
 
   private CompoundDigitalObjectStore cdoStore;
 
-  @ClassRule
-  public static WireMockClassRule wireMockRule = new WireMockClassRule(8888);
+  static final ArkId A_B_C = new ArkId("a-b/c");
+  static final String endpoint = "welcome.js";
 
-  @Rule
-  public WireMockClassRule instanceRule = wireMockRule;
+  private MockEnvironment env = new MockEnvironment();
+  private String remoteURL = "http://localhost:2000";
+
+  private ObjectNode activationResponseBody;
 
   @Before
-  public void setUpCDOStore() throws URISyntaxException {
-    cdoStore = new FilesystemCDOStore(
-        Paths.get(this.getClass().getResource("/shelf").toURI()).toString());
+  public void setUp() throws URISyntaxException {
+
+    URI uri = this.getClass().getResource("/shelf").toURI();
+    cdoStore = new FilesystemCDOStore("filesystem:" + uri.toString());
+
+    env.setProperty("kgrid.adapter.proxy.url", remoteURL);
+
+    Mockito.when(restTemplate.getForEntity(remoteURL, String.class))
+        .thenReturn(new ResponseEntity<>("up", HttpStatus.OK));
+
+
+    activationResponseBody = new ObjectMapper().createObjectNode();
+    activationResponseBody.put("activated", true);
+    activationResponseBody.put("handle", A_B_C.getDashArkVersion() + "/" + endpoint );
+
+    Mockito.when(restTemplate.postForObject(Mockito.anyString(), Mockito.any(), Mockito.any()))
+        .thenReturn(activationResponseBody);
+
+    proxyAdapter.initialize(new ActivationContext() {
+      @Override
+      public Executor getExecutor(String key) {
+        return null;
+      }
+
+      @Override
+      public byte[] getBinary(String pathToBinary) {
+        return cdoStore.getBinary(pathToBinary);
+      }
+
+      @Override
+      public String getProperty(String key) {
+        return env.getProperty(key);
+      }
+    });
+
   }
 
   @Test
-  public void testSimpleObjectExecution() {
+  public void testInitializeThrowsGoodError() {
+    String randomLocation = "/" + UUID.randomUUID();
+    try {
+      ProxyAdapter adapter2 = new ProxyAdapter();
 
-    String response = "Hello, Rob\n";
-    mockProxyAdapter(response);
+      env.setProperty("kgrid.adapter.proxy.url", remoteURL + randomLocation);
+      adapter2.initialize(new ActivationContext() {
+        @Override
+        public Executor getExecutor(String key) {
+          return null;
+        }
 
-    ProxyAdapter proxyAdapter = new ProxyAdapter();
-    proxyAdapter.setCdoStore(cdoStore);
-    Path url = Paths.get("99999-newko/v0.0.1/model/http:/localhost:8888");
-    Executor executor = proxyAdapter.activate(url,
-        "helloworld");
-    Map<String, Object> inputs = new HashMap<>();
-    inputs.put("name", "Rob");
-    String result = executor.execute(inputs).toString();
+        @Override
+        public byte[] getBinary(String pathToBinary) {
+          return new byte[0];
+        }
 
-    assertEquals("Hello, Rob\n", result);
+        @Override
+        public String getProperty(String key) {
+          return env.getProperty(key);
+        }
+      });
+    } catch (AdapterException  e) {
+      assertEquals("Remote execution environment not online, no response from " + remoteURL + randomLocation, e.getMessage());
+    }
   }
 
   @Test
-  public void testNoInputs() {
+  public void testActivateRemoteObject() {
 
-    String response = "Hello, World\n";
-    mockProxyAdapter(response);
+    ResourcePatternResolver resourceResolver = new PathMatchingResourcePatternResolver();
+    Executor activatedHello = proxyAdapter.activate(Paths.get(
+        Paths.get("a-b-c", "welcome.js").toString()), "welcome");
 
-    ProxyAdapter proxyAdapter = new ProxyAdapter();
-    proxyAdapter.setCdoStore(cdoStore);
-    Path url = Paths.get("99999-newko/v0.0.1/model/http:/localhost:8888");
-    Executor executor = proxyAdapter.activate(url,
-        "helloworld");
-    Map<String, Object> inputs = new HashMap<>();
-    assertEquals("Hello, World\n", executor.execute(inputs));
   }
 
-  // Mock jupyter notebook server response
-  private void mockProxyAdapter(String response) {
-    stubFor(post(urlEqualTo("/helloworld"))
-        .withHeader("Content-Type", equalTo(MediaType.APPLICATION_JSON_VALUE))
-        .willReturn(aResponse().withStatus(200)
-            .withBody(response)));
-  }
+  @Test
+  public void testExecuteRemoteObject() {
+    Executor activatedHello = proxyAdapter.activate(Paths.get(
+        Paths.get("a-b-c", "welcome.js").toString()), "welcome");
+    Object result = activatedHello.execute("test");
+    System.out.println(result);
 
+  }
 }
