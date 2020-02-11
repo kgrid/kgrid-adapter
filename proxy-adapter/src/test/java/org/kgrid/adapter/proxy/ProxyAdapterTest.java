@@ -1,9 +1,8 @@
 package org.kgrid.adapter.proxy;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.UUID;
 import org.junit.Before;
@@ -22,12 +21,16 @@ import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.web.client.RestTemplate;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ProxyAdapterTest {
@@ -41,32 +44,64 @@ public class ProxyAdapterTest {
 
   private CompoundDigitalObjectStore cdoStore;
 
-  static final ArkId A_B_C = new ArkId("a-b/c");
-  static final String endpoint = "welcome.js";
+  static final ArkId helloWorld = new ArkId("hello-world/v1.0");
+  static final String endpoint = "welcome";
 
   private MockEnvironment env = new MockEnvironment();
   private String remoteURL = "http://localhost:2000";
 
-  private ObjectNode activationResponseBody;
+  private JsonNode activationRequestBody;
+  private JsonNode activationResponseBody;
+  private JsonNode executionResponseBody;
+  private String input;
 
   @Before
-  public void setUp() throws URISyntaxException {
+  public void setUp() throws Exception {
 
     URI uri = this.getClass().getResource("/shelf").toURI();
     cdoStore = new FilesystemCDOStore("filesystem:" + uri.toString());
 
     env.setProperty("kgrid.adapter.proxy.url", remoteURL);
 
+    // For checking if remote server is up
     Mockito.when(restTemplate.getForEntity(remoteURL, String.class))
         .thenReturn(new ResponseEntity<>("up", HttpStatus.OK));
 
+    activationRequestBody = new ObjectMapper().readTree(
+        "{\"arkid\":\"ark:/hello/world\","
+            + "\"version\":\"v1.0\",\"default\":true,"
+            + "\"endpoint\":\"welcome\",\"entry\":\"src/index.js\""
+            + ",\"artifacts\":[\"https://github.com/kgrid-objects/example-collection/releases/download/2.0.0/hello-world-v1.0.zip\"]}"
+    );
 
-    activationResponseBody = new ObjectMapper().createObjectNode();
-    activationResponseBody.put("activated", true);
-    activationResponseBody.put("handle", A_B_C.getDashArkVersion() + "/" + endpoint );
+    activationResponseBody = new ObjectMapper().readTree("{\n"
+        + "    \"arkid\": \"ark:/hello/world\",\n"
+        + "    \"version\": \"v1.0\",\n"
+        + "    \"endpoint_url\": \"http://localhost:2000/hello/world/welcome\",\n"
+        + "    \"activated\": \"Tue Feb 11 2020 14:32:30 GMT-0500 (Eastern Standard Time)\",\n"
+        + "    \"artifact\": [\n"
+        + "        \"./shelf/hello-world-v1.0/hello-world-v1.0.zip\"\n"
+        + "    ]\n"
+        + "}");
 
-    Mockito.when(restTemplate.postForObject(Mockito.anyString(), Mockito.any(), Mockito.any()))
+    executionResponseBody = new ObjectMapper().readTree("{\n"
+        + "    \"ko\": \"ark:/hello/world\",\n"
+        + "    \"result\": \"Welcome to Knowledge Grid, test\"\n"
+        + "}");
+
+
+    // For activating a remote object
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    HttpEntity<String> activationReq = new HttpEntity<>(activationRequestBody.toString(), headers);
+    Mockito.when(restTemplate.postForObject(remoteURL + "/activate", activationReq, JsonNode.class))
         .thenReturn(activationResponseBody);
+
+    // For executing a remote object
+    input = "{\"name\":\"test\"}";
+    HttpEntity<String> executionReq = new HttpEntity<>(input, headers);
+    Mockito.when(restTemplate.postForObject(remoteURL + "/hello/world/welcome", executionReq, JsonNode.class))
+        .thenReturn(executionResponseBody);
 
     proxyAdapter.initialize(new ActivationContext() {
       @Override
@@ -111,25 +146,31 @@ public class ProxyAdapterTest {
         }
       });
     } catch (AdapterException  e) {
-      assertEquals("Remote execution environment not online, no response from " + remoteURL + randomLocation, e.getMessage());
+      assertEquals("Remote execution environment not online, could not resolve"
+          + " remote server address, check that address is correct and server"
+          + " is running at http://localhost:2000" + randomLocation
+          + " Root error I/O error on GET request for \"http://localhost:2000"
+          + randomLocation + "\": Connection refused"
+          + " (Connection refused); nested exception is java.net.ConnectException:"
+          + " Connection refused (Connection refused)", e.getMessage());
     }
   }
 
   @Test
   public void testActivateRemoteObject() {
 
-    ResourcePatternResolver resourceResolver = new PathMatchingResourcePatternResolver();
     Executor activatedHello = proxyAdapter.activate(Paths.get(
-        Paths.get("a-b-c", "welcome.js").toString()), "welcome");
-
+        Paths.get("hello-world-v1.0", "metadata.json").toString()), "welcome");
+    assertNotNull(activatedHello);
   }
 
   @Test
   public void testExecuteRemoteObject() {
     Executor activatedHello = proxyAdapter.activate(Paths.get(
-        Paths.get("a-b-c", "welcome.js").toString()), "welcome");
-    Object result = activatedHello.execute("test");
-    System.out.println(result);
+        Paths.get("hello-world-v1.0", "metadata.json").toString()), "welcome");
+    JsonNode result = (JsonNode)activatedHello.execute(input);
+    assertEquals("ark:/hello/world", result.get("ko").asText());
+    assertEquals("Welcome to Knowledge Grid, test", result.get("result").asText());
 
   }
 }
