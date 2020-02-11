@@ -50,6 +50,7 @@ public class ProxyAdapterTest {
   private MockEnvironment env = new MockEnvironment();
   private String remoteURL = "http://localhost:2000";
 
+  private JsonNode infoResponseBody;
   private JsonNode activationRequestBody;
   private JsonNode activationResponseBody;
   private JsonNode executionResponseBody;
@@ -63,9 +64,12 @@ public class ProxyAdapterTest {
 
     env.setProperty("kgrid.adapter.proxy.url", remoteURL);
 
+    infoResponseBody = new ObjectMapper().readTree(
+        "{\"Status\":\"Up\",\"Url\":\"" + remoteURL + "\"}");
+
     // For checking if remote server is up
-    Mockito.when(restTemplate.getForEntity(remoteURL, String.class))
-        .thenReturn(new ResponseEntity<>("up", HttpStatus.OK));
+    Mockito.when(restTemplate.getForEntity(remoteURL + "/info", JsonNode.class))
+        .thenReturn(new ResponseEntity<>(infoResponseBody, HttpStatus.OK));
 
     activationRequestBody = new ObjectMapper().readTree(
         "{\"arkid\":\"ark:/hello/world\","
@@ -150,7 +154,7 @@ public class ProxyAdapterTest {
           + " remote server address, check that address is correct and server"
           + " is running at http://localhost:2000" + randomLocation
           + " Root error I/O error on GET request for \"http://localhost:2000"
-          + randomLocation + "\": Connection refused"
+          + randomLocation + "/info\": Connection refused"
           + " (Connection refused); nested exception is java.net.ConnectException:"
           + " Connection refused (Connection refused)", e.getMessage());
     }

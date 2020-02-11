@@ -113,8 +113,8 @@ public class ProxyAdapter implements Adapter {
         throw new AdapterException("Remote server not set, check that the remote server property "
             + "kgrid.adapter.proxy.url has been set");
       }
-      ResponseEntity<String> resp = restTemplate.getForEntity(remoteServer, String.class);
-      if (resp.getStatusCode() != HttpStatus.OK) {
+      ResponseEntity<JsonNode> resp = restTemplate.getForEntity(remoteServer +"/info", JsonNode.class);
+      if (resp.getStatusCode() != HttpStatus.OK || !"Up".equals(resp.getBody().get("Status").asText())) {
         throw new AdapterException(
             "Remote execution environment not online, no response from " + remoteServer);
       }
