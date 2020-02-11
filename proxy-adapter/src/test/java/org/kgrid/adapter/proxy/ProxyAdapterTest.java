@@ -150,13 +150,7 @@ public class ProxyAdapterTest {
         }
       });
     } catch (AdapterException  e) {
-      assertEquals("Remote execution environment not online, could not resolve"
-          + " remote server address, check that address is correct and server"
-          + " is running at http://localhost:2000" + randomLocation
-          + " Root error I/O error on GET request for \"http://localhost:2000"
-          + randomLocation + "/info\": Connection refused"
-          + " (Connection refused); nested exception is java.net.ConnectException:"
-          + " Connection refused (Connection refused)", e.getMessage());
+      assertEquals("Remote execution environment not online", e.getMessage().substring(0,39));
     }
   }
 

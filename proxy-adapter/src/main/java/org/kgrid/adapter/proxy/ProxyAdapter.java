@@ -114,9 +114,11 @@ public class ProxyAdapter implements Adapter {
             + "kgrid.adapter.proxy.url has been set");
       }
       ResponseEntity<JsonNode> resp = restTemplate.getForEntity(remoteServer +"/info", JsonNode.class);
-      if (resp.getStatusCode() != HttpStatus.OK || !"Up".equals(resp.getBody().get("Status").asText())) {
+      if (resp.getStatusCode() != HttpStatus.OK || !resp.getBody().has("Status")
+          || !"Up".equals(resp.getBody().get("Status").asText())) {
         throw new AdapterException(
-            "Remote execution environment not online, no response from " + remoteServer);
+            "Remote execution environment not online, \"Up\" response not recieved from " + remoteServer
+                  + "/info");
       }
 
     } catch (HttpClientErrorException | ResourceAccessException | IllegalArgumentException e) {
