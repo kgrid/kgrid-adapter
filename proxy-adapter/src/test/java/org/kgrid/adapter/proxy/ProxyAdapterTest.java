@@ -19,8 +19,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -31,6 +29,7 @@ import org.springframework.web.client.RestTemplate;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ProxyAdapterTest {
@@ -156,10 +155,19 @@ public class ProxyAdapterTest {
 
   @Test
   public void testActivateRemoteObject() {
-
     Executor activatedHello = proxyAdapter.activate(Paths.get(
         Paths.get("hello-world-v1.0", "metadata.json").toString()), "welcome");
     assertNotNull(activatedHello);
+  }
+
+  @Test
+  public void testActivateRemoteNonexistantObject() {
+    try {
+      Executor activatedHello = proxyAdapter.activate(Paths.get(
+          Paths.get("hello-world-v1.0", "doesntexist.json").toString()), "welcome");
+    } catch (AdapterException e) {
+      assertTrue(e.getMessage().startsWith("Cannot read info from file at hello-world-v1.0/doesntexist.json"));
+    }
   }
 
   @Test
@@ -169,6 +177,14 @@ public class ProxyAdapterTest {
     JsonNode result = (JsonNode)activatedHello.execute(input);
     assertEquals("ark:/hello/world", result.get("ko").asText());
     assertEquals("Welcome to Knowledge Grid, test", result.get("result").asText());
+  }
 
+  @Test
+  public void testExecuteRemoteBadInput() {
+    Executor activatedHello = proxyAdapter.activate(Paths.get(
+        Paths.get("hello-world-v1.0", "metadata.json").toString()), "welcome");
+    JsonNode result = (JsonNode)activatedHello.execute(input);
+    assertEquals("ark:/hello/world", result.get("ko").asText());
+    assertEquals("Welcome to Knowledge Grid, test", result.get("result").asText());
   }
 }

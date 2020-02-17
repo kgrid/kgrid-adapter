@@ -37,9 +37,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/error'
       x-kgrid-activation:
-        artifact: 'metadata.json'
+        artifacts:
+          - 'https://github.com/kgrid-objects/example-collection/releases/download/2.0.0/hello-world-v1.0.zip'
         adapter: 'PROXY'
-        entry: 'welcome'
+        endpoint: 'welcome'
+        entry: 'src/index.js'
+        arkid: 'ark:/hello/world'
+        version: 'v1.0'
+        default: true
 components:
   schemas:
     user:

@@ -8,7 +8,6 @@
   "hasServiceSpecification": "service.yaml",
   "hasDeploymentSpecification": "deployment.yaml",
   "hasPayload": "https://github.com/kgrid-objects/example-collection/releases/download/2.0.0/hello-world-v1.0.zip",
-  "main": "src/index.js",
   "@context" : ["http://kgrid.org/koio/contexts/knowledgeobject.jsonld" ]
 
 }

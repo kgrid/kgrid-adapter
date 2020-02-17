@@ -10,6 +10,8 @@ import org.kgrid.adapter.api.Adapter;
 import org.kgrid.adapter.api.AdapterException;
 import org.kgrid.adapter.api.Executor;
 import org.kgrid.shelf.ShelfResourceNotFound;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -21,6 +23,8 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 public class ProxyAdapter implements Adapter {
+
+  private final Logger log = LoggerFactory.getLogger(this.getClass());
 
   private String remoteServer;
 
@@ -45,7 +49,39 @@ public class ProxyAdapter implements Adapter {
   }
 
   @Override
-  public Executor activate(Path resource, String endpoint) {
+  public Executor activate(String objectLocation, JsonNode deploymentSpec) {
+
+    try{
+      isRemoteUp();
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.APPLICATION_JSON);
+      HttpEntity<String> activationReq = new HttpEntity<>(deploymentSpec.toString(), headers);
+      JsonNode activationResult = restTemplate
+          .postForObject(remoteServer + "/activate", activationReq, JsonNode.class);
+      String remoteEndpoint = activationResult.get("endpoint_url").asText();
+
+      return new Executor() {
+        @Override
+        public Object execute(Object input) {
+
+          try {
+            HttpEntity<Object> executionReq = new HttpEntity<>(input, headers);
+            Object result = restTemplate
+                .postForObject(remoteEndpoint, executionReq, JsonNode.class);
+            return result;
+          } catch (HttpClientErrorException | ResourceAccessException e) {
+            throw new AdapterException("Cannot access object payload in remote enviornment");
+          }
+        }
+      };
+    } catch (HttpClientErrorException | InternalServerError ex) {
+      throw new AdapterException("Cannot activate object at address " + remoteServer + "/activate"
+          + " with body " + deploymentSpec.toString() + " " + ex.getMessage());
+    }
+  }
+
+  @Override
+  public Executor activate(Path resource, String entry) {
 
     try {
 
@@ -58,7 +94,7 @@ public class ProxyAdapter implements Adapter {
       activationBody.put("arkid", koDetails.get("identifier").asText());
       activationBody.put("version", koDetails.get("version").asText());
       activationBody.put("default", true);
-      activationBody.put("endpoint", endpoint);
+      activationBody.put("endpoint", entry);
       activationBody.put("entry", koDetails.get("main").asText());
       activationBody.set("artifacts", new ObjectMapper().createArrayNode().add(
           koDetails.get("hasPayload").asText()));
@@ -91,7 +127,7 @@ public class ProxyAdapter implements Adapter {
       }
     } catch (IOException | NullPointerException e) {
       throw new AdapterException("Cannot read in metadata info to generate remote execution request"
-          + " in proxy adapter for endpoint " + endpoint);
+          + " in proxy adapter for endpoint " + entry);
     } catch (ShelfResourceNotFound srnfEx) {
       throw new AdapterException("Cannot read info from file at " + resource.toString()
                 + " Check that the service description for this ko is correct.");

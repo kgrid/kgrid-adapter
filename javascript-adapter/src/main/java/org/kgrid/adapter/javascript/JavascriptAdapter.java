@@ -1,7 +1,9 @@
 package org.kgrid.adapter.javascript;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import javax.script.Bindings;
 import javax.script.Compilable;
@@ -39,6 +41,12 @@ public class JavascriptAdapter implements Adapter {
 
     engine = new ScriptEngineManager().getEngineByName("JavaScript");
     engine.getBindings(ScriptContext.GLOBAL_SCOPE).put("context", activationContext);
+  }
+
+  @Override
+  public Executor activate(String objectLocation, JsonNode deploymentSpec) {
+    return activate(Paths.get(objectLocation, deploymentSpec.get("artifact").asText()),
+        deploymentSpec.get("entry").asText());
   }
 
   @Override
