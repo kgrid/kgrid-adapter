@@ -155,8 +155,8 @@ public class ProxyAdapterTest {
 
   @Test
   public void testActivateRemoteObject() {
-    Executor activatedHello = proxyAdapter.activate(Paths.get(
-        Paths.get("hello-world-v1.0", "metadata.json").toString()), "welcome");
+
+    Executor activatedHello = proxyAdapter.activate("hello-world-v1.0", activationRequestBody);
     assertNotNull(activatedHello);
   }
 
@@ -172,8 +172,7 @@ public class ProxyAdapterTest {
 
   @Test
   public void testExecuteRemoteObject() {
-    Executor activatedHello = proxyAdapter.activate(Paths.get(
-        Paths.get("hello-world-v1.0", "metadata.json").toString()), "welcome");
+    Executor activatedHello = proxyAdapter.activate("hello-world-v1.0", activationRequestBody);
     JsonNode result = (JsonNode)activatedHello.execute(input);
     assertEquals("ark:/hello/world", result.get("ko").asText());
     assertEquals("Welcome to Knowledge Grid, test", result.get("result").asText());
@@ -181,8 +180,7 @@ public class ProxyAdapterTest {
 
   @Test
   public void testExecuteRemoteBadInput() {
-    Executor activatedHello = proxyAdapter.activate(Paths.get(
-        Paths.get("hello-world-v1.0", "metadata.json").toString()), "welcome");
+    Executor activatedHello = proxyAdapter.activate("hello-world-v1.0", activationRequestBody);
     JsonNode result = (JsonNode)activatedHello.execute(input);
     assertEquals("ark:/hello/world", result.get("ko").asText());
     assertEquals("Welcome to Knowledge Grid, test", result.get("result").asText());
