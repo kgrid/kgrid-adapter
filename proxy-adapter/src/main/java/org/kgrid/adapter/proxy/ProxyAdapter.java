@@ -2,14 +2,14 @@ package org.kgrid.adapter.proxy;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.io.IOException;
 import java.nio.file.Path;
 import org.kgrid.adapter.api.ActivationContext;
 import org.kgrid.adapter.api.Adapter;
 import org.kgrid.adapter.api.AdapterException;
 import org.kgrid.adapter.api.Executor;
-import org.kgrid.shelf.ShelfResourceNotFound;
+import org.kgrid.shelf.domain.ArkId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
@@ -49,15 +49,32 @@ public class ProxyAdapter implements Adapter {
   }
 
   @Override
-  public Executor activate(String objectLocation, JsonNode deploymentSpec) {
+  public Executor activate(String objectLocation, ArkId arkId, JsonNode deploymentSpec) {
 
     try{
       isRemoteUp();
+
+      if(deploymentSpec.has("artifact") && deploymentSpec.get("artifact").isArray()) {
+        String serverHost = activationContext.getProperty("java.rmi.server.hostname");
+        String serverPort = activationContext.getProperty("server.port");
+        String shelfEndpoint = activationContext.getProperty("kgrid.shelf.endpoint") != null ?
+            activationContext.getProperty("kgrid.shelf.endpoint"): "kos";
+        ArrayNode artifactURLs = new ObjectMapper().createArrayNode();
+        deploymentSpec.get("artifact").forEach(path -> {
+          String artifactPath = path.asText();
+          String artifactURL = String.format("http://%s:%s/%s/%s/%s", serverHost, serverPort,
+              shelfEndpoint, arkId.getSlashArkVersion(), artifactPath);
+          artifactURLs.add(artifactURL);
+        });
+        ((ObjectNode)deploymentSpec).set("artifact", artifactURLs);
+      }
+
+
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
       HttpEntity<String> activationReq = new HttpEntity<>(deploymentSpec.toString(), headers);
       JsonNode activationResult = restTemplate
-          .postForObject(remoteServer + "/activate", activationReq, JsonNode.class);
+          .postForObject(remoteServer + "/deployments", activationReq, JsonNode.class);
       String remoteEndpoint = activationResult.get("endpoint_url").asText();
 
       return new Executor() {
@@ -75,63 +92,15 @@ public class ProxyAdapter implements Adapter {
         }
       };
     } catch (HttpClientErrorException | InternalServerError ex) {
-      throw new AdapterException("Cannot activate object at address " + remoteServer + "/activate"
+      throw new AdapterException("Cannot activate object at address " + remoteServer + "/deployments"
           + " with body " + deploymentSpec.toString() + " " + ex.getMessage());
     }
   }
 
   @Override
+  @Deprecated
   public Executor activate(Path resource, String entry) {
-
-    try {
-
-      isRemoteUp();
-
-      byte[] metadata = activationContext.getBinary(resource.toString());
-      JsonNode koDetails = new ObjectMapper().readTree(metadata);
-
-      ObjectNode activationBody = new ObjectMapper().createObjectNode();
-      activationBody.put("arkid", koDetails.get("identifier").asText());
-      activationBody.put("version", koDetails.get("version").asText());
-      activationBody.put("default", true);
-      activationBody.put("endpoint", entry);
-      activationBody.put("entry", koDetails.get("main").asText());
-      activationBody.set("artifacts", new ObjectMapper().createArrayNode().add(
-          koDetails.get("hasPayload").asText()));
-
-      try {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<String> activationReq = new HttpEntity<>(activationBody.toString(), headers);
-        JsonNode activationResult = restTemplate
-            .postForObject(remoteServer + "/activate", activationReq, JsonNode.class);
-        String remoteEndpoint = activationResult.get("endpoint_url").asText();
-
-        return new Executor() {
-          @Override
-          public Object execute(Object input) {
-
-            try {
-              HttpEntity<Object> executionReq = new HttpEntity<>(input, headers);
-              Object result = restTemplate
-                  .postForObject(remoteEndpoint, executionReq, JsonNode.class);
-              return result;
-            } catch (HttpClientErrorException | ResourceAccessException e) {
-              throw new AdapterException("Cannot access object payload in remote enviornment");
-            }
-          }
-        };
-      } catch (HttpClientErrorException | InternalServerError ex) {
-        throw new AdapterException("Cannot activate object at address " + remoteServer + "/activate"
-                + " with body " + activationBody.toString() + " " + ex.getMessage());
-      }
-    } catch (IOException | NullPointerException e) {
-      throw new AdapterException("Cannot read in metadata info to generate remote execution request"
-          + " in proxy adapter for endpoint " + entry);
-    } catch (ShelfResourceNotFound srnfEx) {
-      throw new AdapterException("Cannot read info from file at " + resource.toString()
-                + " Check that the service description for this ko is correct.");
-    }
+    return null;
   }
 
   @Override

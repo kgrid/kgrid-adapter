@@ -2,9 +2,9 @@ openapi: 3.0.0
 info:
   version: 1.0.0
   title: 'Hello, World'
-  description: 'hello world c-style'
+  description: 'hello world proxy'
 servers:
-  - url: '/hello/world/v1.0/'
+  - url: '/hello/proxy/v1.0/'
     description: Hello world
 tags:
   - name: KO Endpoints
@@ -37,14 +37,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/error'
       x-kgrid-activation:
-        artifacts:
-          - 'https://github.com/kgrid-objects/example-collection/releases/download/2.0.0/hello-world-v1.0.zip'
+        artifact:
+          - 'src/welcome.js'
         adapter: 'PROXY'
-        endpoint: 'welcome'
-        entry: 'src/index.js'
-        arkid: 'ark:/hello/world'
-        version: 'v1.0'
-        default: true
+        entry: 'welcome'
 components:
   schemas:
     user:

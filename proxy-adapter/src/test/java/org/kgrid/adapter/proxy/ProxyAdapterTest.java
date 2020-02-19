@@ -25,6 +25,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import static org.junit.Assert.assertEquals;
@@ -43,25 +44,33 @@ public class ProxyAdapterTest {
 
   private CompoundDigitalObjectStore cdoStore;
 
-  static final ArkId helloWorld = new ArkId("hello-world/v1.0");
-  static final String endpoint = "welcome";
-
   private MockEnvironment env = new MockEnvironment();
   private String remoteURL = "http://localhost:2000";
 
+  private ArkId arkId;
   private JsonNode infoResponseBody;
+  private JsonNode deploymentDesc;
+  private JsonNode badDeploymentDesc;
   private JsonNode activationRequestBody;
+  private JsonNode badActivationRequestBody;
   private JsonNode activationResponseBody;
+  private JsonNode activationErrorResponseBody;
   private JsonNode executionResponseBody;
   private String input;
 
+
+
   @Before
   public void setUp() throws Exception {
+
+    arkId = new ArkId("hello-proxy-v1.0");
 
     URI uri = this.getClass().getResource("/shelf").toURI();
     cdoStore = new FilesystemCDOStore("filesystem:" + uri.toString());
 
     env.setProperty("kgrid.adapter.proxy.url", remoteURL);
+    env.setProperty("java.rmi.server.hostname", "127.0.0.1");
+    env.setProperty("server.port", "8082");
 
     infoResponseBody = new ObjectMapper().readTree(
         "{\"Status\":\"Up\",\"Url\":\"" + remoteURL + "\"}");
@@ -70,25 +79,33 @@ public class ProxyAdapterTest {
     Mockito.when(restTemplate.getForEntity(remoteURL + "/info", JsonNode.class))
         .thenReturn(new ResponseEntity<>(infoResponseBody, HttpStatus.OK));
 
+    deploymentDesc = new ObjectMapper().readTree(
+        "{\"artifact\":[\"src/welcome.js\"],"
+            + "\"adapter\":\"PROXY\",\"entry\":\"welcome\"}");
+
+    badDeploymentDesc = new ObjectMapper().readTree(
+        "{\"artifact\":[\"src/notthere.js\"],"
+            + "\"adapter\":\"PROXY\",\"entry\":\"welcome\"}");
+
     activationRequestBody = new ObjectMapper().readTree(
-        "{\"arkid\":\"ark:/hello/world\","
-            + "\"version\":\"v1.0\",\"default\":true,"
-            + "\"endpoint\":\"welcome\",\"entry\":\"src/index.js\""
-            + ",\"artifacts\":[\"https://github.com/kgrid-objects/example-collection/releases/download/2.0.0/hello-world-v1.0.zip\"]}"
-    );
+        "{\"artifact\":[\"http://127.0.0.1:8082/kos/hello/proxy/v1.0/src/welcome.js\"],"
+            + "\"adapter\":\"PROXY\",\"entry\":\"welcome\"}");
+
+    badActivationRequestBody = new ObjectMapper().readTree(
+        "{\"artifact\":[\"http://127.0.0.1:8082/kos/hello/proxy/v1.0/src/notthere.js\"],"
+            + "\"adapter\":\"PROXY\",\"entry\":\"welcome\"}");
 
     activationResponseBody = new ObjectMapper().readTree("{\n"
-        + "    \"arkid\": \"ark:/hello/world\",\n"
-        + "    \"version\": \"v1.0\",\n"
-        + "    \"endpoint_url\": \"http://localhost:2000/hello/world/welcome\",\n"
-        + "    \"activated\": \"Tue Feb 11 2020 14:32:30 GMT-0500 (Eastern Standard Time)\",\n"
-        + "    \"artifact\": [\n"
-        + "        \"./shelf/hello-world-v1.0/hello-world-v1.0.zip\"\n"
-        + "    ]\n"
+        + "    \"endpoint_url\": \"" + remoteURL + "/knlME7rU6X80\",\n"
+        + "    \"activated\": \"Tue Feb 18 2020 16:44:15 GMT-0500 (Eastern Standard Time)\"\n"
+        + "}");
+
+    activationErrorResponseBody = new ObjectMapper().readTree("{\n"
+        + "    \"Error\": \"Cannot download http://127.0.0.1:8082/kos/hello/proxy/v1.0/src/notthere.js\"\n"
         + "}");
 
     executionResponseBody = new ObjectMapper().readTree("{\n"
-        + "    \"ko\": \"ark:/hello/world\",\n"
+        + "    \"ko\": \"ark:/hello/proxy\",\n"
         + "    \"result\": \"Welcome to Knowledge Grid, test\"\n"
         + "}");
 
@@ -97,13 +114,19 @@ public class ProxyAdapterTest {
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
     HttpEntity<String> activationReq = new HttpEntity<>(activationRequestBody.toString(), headers);
-    Mockito.when(restTemplate.postForObject(remoteURL + "/activate", activationReq, JsonNode.class))
+
+    Mockito.when(restTemplate.postForObject(remoteURL + "/deployments", activationReq, JsonNode.class))
         .thenReturn(activationResponseBody);
+
+    HttpEntity<String> badActivationReq = new HttpEntity<>(badActivationRequestBody.toString(), headers);
+
+    Mockito.when(restTemplate.postForObject(remoteURL + "/deployments", badActivationReq, JsonNode.class))
+        .thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND));
 
     // For executing a remote object
     input = "{\"name\":\"test\"}";
     HttpEntity<String> executionReq = new HttpEntity<>(input, headers);
-    Mockito.when(restTemplate.postForObject(remoteURL + "/hello/world/welcome", executionReq, JsonNode.class))
+    Mockito.when(restTemplate.postForObject(remoteURL + "/knlME7rU6X80", executionReq, JsonNode.class))
         .thenReturn(executionResponseBody);
 
     proxyAdapter.initialize(new ActivationContext() {
@@ -156,33 +179,32 @@ public class ProxyAdapterTest {
   @Test
   public void testActivateRemoteObject() {
 
-    Executor activatedHello = proxyAdapter.activate("hello-world-v1.0", activationRequestBody);
+    Executor activatedHello = proxyAdapter.activate("hello-proxy-v1.0", arkId, deploymentDesc);
     assertNotNull(activatedHello);
   }
 
   @Test
   public void testActivateRemoteNonexistantObject() {
     try {
-      Executor activatedHello = proxyAdapter.activate(Paths.get(
-          Paths.get("hello-world-v1.0", "doesntexist.json").toString()), "welcome");
+      Executor activatedHello = proxyAdapter.activate("hello-proxy-v1.0", arkId, badDeploymentDesc);
     } catch (AdapterException e) {
-      assertTrue(e.getMessage().startsWith("Cannot read info from file at hello-world-v1.0/doesntexist.json"));
+      assertTrue(e.getMessage().startsWith("Cannot activate object at address "+ remoteURL + "/deployments with body"));
     }
   }
 
   @Test
   public void testExecuteRemoteObject() {
-    Executor activatedHello = proxyAdapter.activate("hello-world-v1.0", activationRequestBody);
+    Executor activatedHello = proxyAdapter.activate("hello-proxy-v1.0", arkId, deploymentDesc);
     JsonNode result = (JsonNode)activatedHello.execute(input);
-    assertEquals("ark:/hello/world", result.get("ko").asText());
+    assertEquals("ark:/hello/proxy", result.get("ko").asText());
     assertEquals("Welcome to Knowledge Grid, test", result.get("result").asText());
   }
 
   @Test
   public void testExecuteRemoteBadInput() {
-    Executor activatedHello = proxyAdapter.activate("hello-world-v1.0", activationRequestBody);
+    Executor activatedHello = proxyAdapter.activate("hello-proxy-v1.0", arkId, deploymentDesc);
     JsonNode result = (JsonNode)activatedHello.execute(input);
-    assertEquals("ark:/hello/world", result.get("ko").asText());
+    assertEquals("ark:/hello/proxy", result.get("ko").asText());
     assertEquals("Welcome to Knowledge Grid, test", result.get("result").asText());
   }
 }

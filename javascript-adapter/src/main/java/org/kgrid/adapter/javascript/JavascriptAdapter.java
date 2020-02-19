@@ -19,6 +19,7 @@ import org.kgrid.adapter.api.Adapter;
 import org.kgrid.adapter.api.AdapterException;
 import org.kgrid.adapter.api.Executor;
 import org.kgrid.shelf.ShelfResourceNotFound;
+import org.kgrid.shelf.domain.ArkId;
 import org.kgrid.shelf.repository.CompoundDigitalObjectStore;
 
 
@@ -44,7 +45,7 @@ public class JavascriptAdapter implements Adapter {
   }
 
   @Override
-  public Executor activate(String objectLocation, JsonNode deploymentSpec) {
+  public Executor activate(String objectLocation, ArkId arkId, JsonNode deploymentSpec) {
     return activate(Paths.get(objectLocation, deploymentSpec.get("artifact").asText()),
         deploymentSpec.get("entry").asText());
   }
