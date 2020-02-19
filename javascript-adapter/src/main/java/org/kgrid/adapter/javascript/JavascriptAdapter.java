@@ -1,7 +1,9 @@
 package org.kgrid.adapter.javascript;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 import javax.script.Bindings;
 import javax.script.Compilable;
@@ -17,6 +19,7 @@ import org.kgrid.adapter.api.Adapter;
 import org.kgrid.adapter.api.AdapterException;
 import org.kgrid.adapter.api.Executor;
 import org.kgrid.shelf.ShelfResourceNotFound;
+import org.kgrid.shelf.domain.ArkId;
 import org.kgrid.shelf.repository.CompoundDigitalObjectStore;
 
 
@@ -39,6 +42,12 @@ public class JavascriptAdapter implements Adapter {
 
     engine = new ScriptEngineManager().getEngineByName("JavaScript");
     engine.getBindings(ScriptContext.GLOBAL_SCOPE).put("context", activationContext);
+  }
+
+  @Override
+  public Executor activate(String objectLocation, ArkId arkId, JsonNode deploymentSpec) {
+    return activate(Paths.get(objectLocation, deploymentSpec.get("artifact").asText()),
+        deploymentSpec.get("entry").asText());
   }
 
   @Override

@@ -1,24 +1,32 @@
 package org.kgrid.adapter.proxy;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.nio.file.Path;
 import org.kgrid.adapter.api.ActivationContext;
 import org.kgrid.adapter.api.Adapter;
 import org.kgrid.adapter.api.AdapterException;
 import org.kgrid.adapter.api.Executor;
-import org.springframework.core.io.ByteArrayResource;
+import org.kgrid.shelf.domain.ArkId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException.InternalServerError;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 public class ProxyAdapter implements Adapter {
 
-  private String remoteServer;
+  private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-  private boolean remoteUp = false;
+  private String remoteServer;
 
   RestTemplate restTemplate = new RestTemplate();
 
@@ -32,55 +40,98 @@ public class ProxyAdapter implements Adapter {
   @Override
   public void initialize(ActivationContext context) {
 
-    try {
-      // Check that the remote server is up
-      remoteServer = context.getProperty("kgrid.adapter.proxy.url");
-      ResponseEntity<String> resp = restTemplate.getForEntity(remoteServer, String.class);
-      if (resp.getStatusCode() != HttpStatus.OK) {
-        throw new AdapterException(
-            "Remote execution environment not online, no response from " + remoteServer);
-      }
+    // Check that the remote server is up
+    remoteServer = context.getProperty("kgrid.adapter.proxy.url");
 
-    } catch (HttpClientErrorException | ResourceAccessException e) {
-      throw new AdapterException("Remote execution environment not online, no response from " + remoteServer);
-    }
-
-    remoteUp = true;
     activationContext = context;
 
+    isRemoteUp();
   }
 
   @Override
-  public Executor activate(Path resource, String endpoint) {
+  public Executor activate(String objectLocation, ArkId arkId, JsonNode deploymentSpec) {
 
-    ByteArrayResource byteArray = new ByteArrayResource(activationContext.getBinary(
-        resource.toString()));
-    HttpEntity<ByteArrayResource> request = new HttpEntity<>(byteArray);
-    JsonNode activationResult = restTemplate.postForObject(remoteServer + resource, request, JsonNode.class);
-    String remoteEndpoint = activationResult.get("handle").asText();
+    try{
+      isRemoteUp();
 
-    return new Executor() {
-      @Override
-      public Object execute(Object input) {
-
-        try {
-          Object result = restTemplate
-              .postForObject(remoteServer + remoteEndpoint, input, JsonNode.class);
-          return result;
-        } catch (HttpClientErrorException | ResourceAccessException e ) {
-          throw new AdapterException("Cannot access object payload in remote enviornment");
-        }
+      if(deploymentSpec.has("artifact") && deploymentSpec.get("artifact").isArray()) {
+        String serverHost = activationContext.getProperty("java.rmi.server.hostname");
+        String serverPort = activationContext.getProperty("server.port");
+        String shelfEndpoint = activationContext.getProperty("kgrid.shelf.endpoint") != null ?
+            activationContext.getProperty("kgrid.shelf.endpoint"): "kos";
+        ArrayNode artifactURLs = new ObjectMapper().createArrayNode();
+        deploymentSpec.get("artifact").forEach(path -> {
+          String artifactPath = path.asText();
+          String artifactURL = String.format("http://%s:%s/%s/%s/%s", serverHost, serverPort,
+              shelfEndpoint, arkId.getSlashArkVersion(), artifactPath);
+          artifactURLs.add(artifactURL);
+        });
+        ((ObjectNode)deploymentSpec).set("artifact", artifactURLs);
       }
-    };
+
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.APPLICATION_JSON);
+      HttpEntity<String> activationReq = new HttpEntity<>(deploymentSpec.toString(), headers);
+      JsonNode activationResult = restTemplate
+          .postForObject(remoteServer + "/deployments", activationReq, JsonNode.class);
+      String remoteEndpoint = activationResult.get("endpoint_url").asText();
+
+      return new Executor() {
+        @Override
+        public Object execute(Object input) {
+
+          try {
+            HttpEntity<Object> executionReq = new HttpEntity<>(input, headers);
+            Object result = restTemplate
+                .postForObject(remoteEndpoint, executionReq, JsonNode.class);
+            return result;
+          } catch (HttpClientErrorException | ResourceAccessException e) {
+            throw new AdapterException("Cannot access object payload in remote enviornment");
+          }
+        }
+      };
+    } catch (HttpClientErrorException | InternalServerError ex) {
+      throw new AdapterException("Cannot activate object at address " + remoteServer + "/deployments"
+          + " with body " + deploymentSpec.toString() + " " + ex.getMessage());
+    }
+  }
+
+  @Override
+  @Deprecated
+  public Executor activate(Path resource, String entry) {
+    return null;
   }
 
   @Override
   public String status() {
-    if(remoteUp && activationContext != null) {
+    if(isRemoteUp() && activationContext != null) {
       return "UP" ;
     } else {
       return "DOWN";
     }
   }
 
+  private boolean isRemoteUp() {
+    try {
+      if(remoteServer == null || "".equals(remoteServer)) {
+        throw new AdapterException("Remote server not set, check that the remote server property "
+            + "kgrid.adapter.proxy.url has been set");
+      }
+      ResponseEntity<JsonNode> resp = restTemplate.getForEntity(remoteServer +"/info", JsonNode.class);
+      if (resp.getStatusCode() != HttpStatus.OK || !resp.getBody().has("Status")
+          || !"Up".equals(resp.getBody().get("Status").asText())) {
+        throw new AdapterException(
+            "Remote execution environment not online, \"Up\" response not recieved from " + remoteServer
+                  + "/info");
+      }
+
+    } catch (HttpClientErrorException | ResourceAccessException | IllegalArgumentException e) {
+      throw new AdapterException(
+          "Remote execution environment not online, could not resolve remote server address, "
+              + "check that address is correct and server is running at " + remoteServer
+              + " Root error " + e.getMessage());
+    }
+    return true;
+  }
 }
