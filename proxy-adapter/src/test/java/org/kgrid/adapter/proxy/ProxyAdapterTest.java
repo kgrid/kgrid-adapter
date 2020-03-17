@@ -64,7 +64,7 @@ public class ProxyAdapterTest {
     cdoStore = new FilesystemCDOStore("filesystem:" + uri.toString());
 
     env.setProperty("kgrid.adapter.proxy.url", remoteURL);
-    env.setProperty("kgrid.adapter.proxy.self", "127.0.0.1:8082");
+    env.setProperty("kgrid.adapter.proxy.self", "http://127.0.0.1:8082");
 
     infoResponseBody =
         new ObjectMapper().readTree("{\"Status\":\"Up\",\"Url\":\"" + remoteURL + "\"}");

@@ -64,7 +64,7 @@ public class ProxyAdapter implements Adapter {
         ArrayNode artifactURLs = new ObjectMapper().createArrayNode();
         deploymentSpec.get("artifact").forEach(path -> {
           String artifactPath = path.asText();
-          String artifactURL = String.format("http://%s/%s/%s/%s", serverHost,
+          String artifactURL = String.format("%s/%s/%s/%s", serverHost,
               shelfEndpoint, arkId.getSlashArkVersion(), artifactPath);
           artifactURLs.add(artifactURL);
         });
