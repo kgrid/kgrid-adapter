@@ -55,7 +55,12 @@ public class ProxyAdapter implements Adapter {
       isRemoteUp();
 
       if(deploymentSpec.has("artifact") && deploymentSpec.get("artifact").isArray()) {
-        String serverHost = activationContext.getProperty("java.rmi.server.hostname");
+        String serverHost = (activationContext.getProperty("java.rmi.server.hostname") != null ?
+                activationContext.getProperty("java.rmi.server.hostname") :
+                activationContext.getProperty("kgrid.adapter.proxy.self"));
+        if(serverHost == null || "".equals(serverHost)) {
+          log.warn("Server host not set correctly");
+        }
         String serverPort = activationContext.getProperty("server.port");
         String shelfEndpoint = activationContext.getProperty("kgrid.shelf.endpoint") != null ?
             activationContext.getProperty("kgrid.shelf.endpoint"): "kos";
@@ -67,8 +72,9 @@ public class ProxyAdapter implements Adapter {
           artifactURLs.add(artifactURL);
         });
         ((ObjectNode)deploymentSpec).set("artifact", artifactURLs);
+        ((ObjectNode) deploymentSpec).put("identifier", arkId.getFullArk());
+        ((ObjectNode) deploymentSpec).put("version", arkId.getVersion());
       }
-
 
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
