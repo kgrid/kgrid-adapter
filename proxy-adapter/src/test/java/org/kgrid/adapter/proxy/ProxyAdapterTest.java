@@ -92,7 +92,8 @@ public class ProxyAdapterTest {
                 "{\"artifact\":[\"http://127.0.0.1:8082/kos/hello/proxy/v1.0/src/welcome.js\"],"
                     + "\"adapter\":\"PROXY\",\"entry\":\"welcome\","
                     + "\"identifier\":\"ark:/hello/proxy\","
-                    + "\"version\":\"v1.0\"}");
+                    + "\"version\":\"v1.0\","
+                    + "\"endpoint\":\"welcome\"}");
 
     badActivationRequestBody =
         new ObjectMapper()
@@ -100,7 +101,8 @@ public class ProxyAdapterTest {
                 "{\"artifact\":[\"http://127.0.0.1:8082/kos/hello/proxy/v1.0/src/notthere.js\"],"
                     + "\"adapter\":\"PROXY\",\"entry\":\"welcome\","
                     + "\"identifier\":\"ark:/hello/proxy\","
-                    + "\"version\":\"v1.0\"}");
+                    + "\"version\":\"v1.0\", "
+                    + "\"endpoint\":\"welcome\"}");
 
     activationResponseBody =
         new ObjectMapper()

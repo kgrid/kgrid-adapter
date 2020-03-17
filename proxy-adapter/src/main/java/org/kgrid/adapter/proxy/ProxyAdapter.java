@@ -71,9 +71,10 @@ public class ProxyAdapter implements Adapter {
               shelfEndpoint, arkId.getSlashArkVersion(), artifactPath);
           artifactURLs.add(artifactURL);
         });
-        ((ObjectNode)deploymentSpec).set("artifact", artifactURLs);
+        ((ObjectNode) deploymentSpec).set("artifact", artifactURLs);
         ((ObjectNode) deploymentSpec).put("identifier", arkId.getFullArk());
         ((ObjectNode) deploymentSpec).put("version", arkId.getVersion());
+        ((ObjectNode) deploymentSpec).put("endpoint", deploymentSpec.get("entry"));
       }
 
       HttpHeaders headers = new HttpHeaders();
