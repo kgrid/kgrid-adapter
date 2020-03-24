@@ -55,20 +55,24 @@ public class ProxyAdapter implements Adapter {
       isRemoteUp();
 
       if(deploymentSpec.has("artifact") && deploymentSpec.get("artifact").isArray()) {
-        String serverHost = activationContext.getProperty("java.rmi.server.hostname");
-        String serverPort = activationContext.getProperty("server.port");
+        String serverHost = activationContext.getProperty("kgrid.adapter.proxy.self");
+        if(serverHost == null || "".equals(serverHost)) {
+          log.warn("Server host not set correctly");
+        }
         String shelfEndpoint = activationContext.getProperty("kgrid.shelf.endpoint") != null ?
             activationContext.getProperty("kgrid.shelf.endpoint"): "kos";
         ArrayNode artifactURLs = new ObjectMapper().createArrayNode();
         deploymentSpec.get("artifact").forEach(path -> {
           String artifactPath = path.asText();
-          String artifactURL = String.format("http://%s:%s/%s/%s/%s", serverHost, serverPort,
+          String artifactURL = String.format("%s/%s/%s/%s", serverHost,
               shelfEndpoint, arkId.getSlashArkVersion(), artifactPath);
           artifactURLs.add(artifactURL);
         });
-        ((ObjectNode)deploymentSpec).set("artifact", artifactURLs);
+        ((ObjectNode) deploymentSpec).set("artifact", artifactURLs);
+        ((ObjectNode) deploymentSpec).put("identifier", arkId.getFullArk());
+        ((ObjectNode) deploymentSpec).put("version", arkId.getVersion());
+        ((ObjectNode) deploymentSpec).put("endpoint", deploymentSpec.get("entry"));
       }
-
 
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
