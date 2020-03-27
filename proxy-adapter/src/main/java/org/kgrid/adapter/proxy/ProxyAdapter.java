@@ -49,7 +49,7 @@ public class ProxyAdapter implements Adapter {
   }
 
   @Override
-  public Executor activate(String objectLocation, ArkId arkId, JsonNode deploymentSpec) {
+  public Executor activate(String objectLocation, ArkId arkId, String endpointName, JsonNode deploymentSpec) {
 
     try{
       isRemoteUp();
@@ -71,7 +71,7 @@ public class ProxyAdapter implements Adapter {
         ((ObjectNode) deploymentSpec).set("artifact", artifactURLs);
         ((ObjectNode) deploymentSpec).put("identifier", arkId.getFullArk());
         ((ObjectNode) deploymentSpec).put("version", arkId.getVersion());
-        ((ObjectNode) deploymentSpec).put("endpoint", deploymentSpec.get("entry"));
+        ((ObjectNode) deploymentSpec).put("endpoint", endpointName);
       }
 
       HttpHeaders headers = new HttpHeaders();

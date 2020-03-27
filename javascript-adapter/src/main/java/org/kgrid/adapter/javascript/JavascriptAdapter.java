@@ -45,7 +45,7 @@ public class JavascriptAdapter implements Adapter {
   }
 
   @Override
-  public Executor activate(String objectLocation, ArkId arkId, JsonNode deploymentSpec) {
+  public Executor activate(String objectLocation, ArkId arkId, String endpointName, JsonNode deploymentSpec) {
     return activate(Paths.get(objectLocation, deploymentSpec.get("artifact").asText()),
         deploymentSpec.get("entry").asText());
   }

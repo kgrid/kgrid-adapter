@@ -45,6 +45,7 @@ public class ProxyAdapterTest {
   private String remoteURL = "http://localhost:2000";
 
   private ArkId arkId;
+  private String endpointName;
   private JsonNode infoResponseBody;
   private JsonNode deploymentDesc;
   private JsonNode badDeploymentDesc;
@@ -59,6 +60,7 @@ public class ProxyAdapterTest {
   public void setUp() throws Exception {
 
     arkId = new ArkId("hello-proxy-v1.0");
+    endpointName = "welcome";
 
     URI uri = this.getClass().getResource("/shelf").toURI();
     cdoStore = new FilesystemCDOStore("filesystem:" + uri.toString());
@@ -77,19 +79,20 @@ public class ProxyAdapterTest {
         new ObjectMapper()
             .readTree(
                 "{\"artifact\":[\"src/welcome.js\"],"
-                    + "\"adapter\":\"PROXY\",\"entry\":\"welcome\"}");
+                    + "\"adapter\":\"PROXY\",\"entry\":\"welcome.js\",\"function\":\"welcome\"}");
 
     badDeploymentDesc =
         new ObjectMapper()
             .readTree(
                 "{\"artifact\":[\"src/notthere.js\"],"
-                    + "\"adapter\":\"PROXY\",\"entry\":\"welcome\"}");
+                    + "\"adapter\":\"PROXY\",\"entry\":\"notthere.js\",\"function\":\"welcome\"}");
 
     activationRequestBody =
         new ObjectMapper()
             .readTree(
                 "{\"artifact\":[\"http://127.0.0.1:8082/kos/hello/proxy/v1.0/src/welcome.js\"],"
-                    + "\"adapter\":\"PROXY\",\"entry\":\"welcome\","
+                    + "\"adapter\":\"PROXY\",\"entry\":\"welcome.js\","
+                    + "\"function\":\"welcome\","
                     + "\"identifier\":\"ark:/hello/proxy\","
                     + "\"version\":\"v1.0\","
                     + "\"endpoint\":\"welcome\"}");
@@ -98,7 +101,8 @@ public class ProxyAdapterTest {
         new ObjectMapper()
             .readTree(
                 "{\"artifact\":[\"http://127.0.0.1:8082/kos/hello/proxy/v1.0/src/notthere.js\"],"
-                    + "\"adapter\":\"PROXY\",\"entry\":\"welcome\","
+                    + "\"adapter\":\"PROXY\",\"entry\":\"notthere.js\","
+                    + "\"function\":\"welcome\","
                     + "\"identifier\":\"ark:/hello/proxy\","
                     + "\"version\":\"v1.0\", "
                     + "\"endpoint\":\"welcome\"}");
@@ -203,14 +207,14 @@ public class ProxyAdapterTest {
   @Test
   public void testActivateRemoteObject() {
 
-    Executor activatedHello = proxyAdapter.activate("hello-proxy-v1.0", arkId, deploymentDesc);
+    Executor activatedHello = proxyAdapter.activate("hello-proxy-v1.0", arkId, endpointName, deploymentDesc);
     assertNotNull(activatedHello);
   }
 
   @Test
   public void testActivateRemoteNonexistantObject() {
     try {
-      Executor activatedHello = proxyAdapter.activate("hello-proxy-v1.0", arkId, badDeploymentDesc);
+      Executor activatedHello = proxyAdapter.activate("hello-proxy-v1.0", arkId, endpointName, badDeploymentDesc);
     } catch (AdapterException e) {
       assertTrue(
           e.getMessage()
@@ -221,7 +225,7 @@ public class ProxyAdapterTest {
 
   @Test
   public void testExecuteRemoteObject() {
-    Executor activatedHello = proxyAdapter.activate("hello-proxy-v1.0", arkId, deploymentDesc);
+    Executor activatedHello = proxyAdapter.activate("hello-proxy-v1.0", arkId, endpointName, deploymentDesc);
     JsonNode result = (JsonNode) activatedHello.execute(input);
     assertEquals("ark:/hello/proxy", result.get("ko").asText());
     assertEquals("Welcome to Knowledge Grid, test", result.get("result").asText());
@@ -229,7 +233,7 @@ public class ProxyAdapterTest {
 
   @Test
   public void testExecuteRemoteBadInput() {
-    Executor activatedHello = proxyAdapter.activate("hello-proxy-v1.0", arkId, deploymentDesc);
+    Executor activatedHello = proxyAdapter.activate("hello-proxy-v1.0", arkId, endpointName, deploymentDesc);
     JsonNode result = (JsonNode) activatedHello.execute(input);
     assertEquals("ark:/hello/proxy", result.get("ko").asText());
     assertEquals("Welcome to Knowledge Grid, test", result.get("result").asText());

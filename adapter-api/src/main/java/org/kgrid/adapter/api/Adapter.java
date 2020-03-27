@@ -13,7 +13,7 @@ public interface Adapter {
   // resource Path: .../99999-fk4r73t/v.1.1.2/models/resource, endpoint: "score"
   Executor activate(Path resource, String entry);
 
-  Executor activate(String objectLocation, ArkId arkId, JsonNode deploymentSpec);
+  Executor activate(String objectLocation, ArkId arkId, String endpointName, JsonNode deploymentSpec);
 
   String status();
 }
