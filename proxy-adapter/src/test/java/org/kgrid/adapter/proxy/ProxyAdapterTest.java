@@ -3,7 +3,6 @@ package org.kgrid.adapter.proxy;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
-import java.nio.file.Paths;
 import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,7 +41,7 @@ public class ProxyAdapterTest {
   private CompoundDigitalObjectStore cdoStore;
 
   private MockEnvironment env = new MockEnvironment();
-  private String remoteURL = "http://localhost:2000";
+  private String remoteURL = "http://localhost:3000";
 
   private ArkId arkId;
   private String endpointName;
@@ -65,8 +64,8 @@ public class ProxyAdapterTest {
     URI uri = this.getClass().getResource("/shelf").toURI();
     cdoStore = new FilesystemCDOStore("filesystem:" + uri.toString());
 
-    env.setProperty("kgrid.adapter.proxy.url", remoteURL);
-    env.setProperty("kgrid.adapter.proxy.self", "http://127.0.0.1:8082");
+    env.setProperty("kgrid.adapter.proxy.port", "8082");
+    env.setProperty("kgrid.adapter.proxy.vipAddress", "http://127.0.0.1");
 
     infoResponseBody =
         new ObjectMapper().readTree("{\"Status\":\"Up\",\"Url\":\"" + remoteURL + "\"}");
@@ -78,19 +77,20 @@ public class ProxyAdapterTest {
     deploymentDesc =
         new ObjectMapper()
             .readTree(
-                "{\"artifact\":[\"src/welcome.js\"],"
+                "{\"artifact\":[\"src/welcome.js\"],\"engine\":\"node\","
                     + "\"adapter\":\"PROXY\",\"entry\":\"welcome.js\",\"function\":\"welcome\"}");
 
     badDeploymentDesc =
         new ObjectMapper()
             .readTree(
-                "{\"artifact\":[\"src/notthere.js\"],"
+                "{\"artifact\":[\"src/notthere.js\"],\"engine\":\"node\","
                     + "\"adapter\":\"PROXY\",\"entry\":\"notthere.js\",\"function\":\"welcome\"}");
 
     activationRequestBody =
         new ObjectMapper()
             .readTree(
                 "{\"artifact\":[\"http://127.0.0.1:8082/kos/hello/proxy/v1.0/src/welcome.js\"],"
+                    + "\"engine\":\"node\","
                     + "\"adapter\":\"PROXY\",\"entry\":\"welcome.js\","
                     + "\"function\":\"welcome\","
                     + "\"identifier\":\"ark:/hello/proxy\","
@@ -101,6 +101,7 @@ public class ProxyAdapterTest {
         new ObjectMapper()
             .readTree(
                 "{\"artifact\":[\"http://127.0.0.1:8082/kos/hello/proxy/v1.0/src/notthere.js\"],"
+                    + "\"engine\":\"node\","
                     + "\"adapter\":\"PROXY\",\"entry\":\"notthere.js\","
                     + "\"function\":\"welcome\","
                     + "\"identifier\":\"ark:/hello/proxy\","
@@ -155,6 +156,9 @@ public class ProxyAdapterTest {
     Mockito.when(
             restTemplate.postForObject(remoteURL + "/knlME7rU6X80", executionReq, JsonNode.class))
         .thenReturn(executionResponseBody);
+
+    // Set up the map of runtimes
+    proxyAdapter.runtimes.put("node", remoteURL);
 
     proxyAdapter.initialize(
         new ActivationContext() {
