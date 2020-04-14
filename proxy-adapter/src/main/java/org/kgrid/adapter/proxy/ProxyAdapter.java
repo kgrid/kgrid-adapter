@@ -20,10 +20,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException.InternalServerError;
 import org.springframework.web.client.ResourceAccessException;
@@ -41,19 +38,48 @@ public class ProxyAdapter implements Adapter {
 
   static Map<String, String> runtimes = new HashMap<>();
 
-  @PostMapping(value = "/register",
+  @PostMapping(value = "/proxy/environments",
           consumes = MediaType.APPLICATION_JSON_VALUE,
           produces = MediaType.APPLICATION_JSON_VALUE)
   public ObjectNode registerRemoteRuntime(@RequestBody ObjectNode runtimeDetails) {
 
     String runtimeName = runtimeDetails.get("type").asText();
     String runtimeAddress = runtimeDetails.get("url").asText();
-    runtimes.put(runtimeName, runtimeAddress);
     isRemoteUp(runtimeName, runtimeAddress);
+    if(runtimes.get(runtimeName) != null){
+      log.info("Overwriting the remote environment url that can handle " + runtimeName
+              + " with new address " + runtimeAddress);
+    } else {
+      log.info("Adding a new remote environment to the registry that can handle " + runtimeName
+              + " and is located at " + runtimeAddress);
+    }
+    runtimes.put(runtimeName, runtimeAddress);
 
-    log.info("Adding a remote environment to the registry that can handle " + runtimeName
-            + " and is located at " + runtimeAddress);
     return new ObjectMapper().createObjectNode().put("Registered", "success");
+  }
+
+  @GetMapping(value = "/proxy/environments",
+          produces = MediaType.APPLICATION_JSON_VALUE)
+  public ArrayNode getRuntimeList() {
+
+    log.info("Returning list of all available runtimes.");
+    ArrayNode runtimeList = new ObjectMapper().createArrayNode();
+    runtimes.forEach((runtimeName, runtimeAddress) -> {
+      ObjectNode runtimeDetails = new ObjectMapper().createObjectNode();
+
+      runtimeDetails.put("type", runtimeName);
+      runtimeDetails.put("url", runtimeAddress);
+      boolean running;
+      try {
+        running = isRemoteUp(runtimeName, runtimeAddress);
+      } catch (Exception e) {
+        running = false;
+        runtimeDetails.put("error_details", e.getMessage());
+      }
+      runtimeDetails.put("running", running);
+      runtimeList.add(runtimeDetails);
+    });
+    return runtimeList;
   }
 
   @Override
@@ -73,6 +99,9 @@ public class ProxyAdapter implements Adapter {
       throw new AdapterException("Cannot find engine type in proxy object with arkId " + arkId.getDashArkVersion());
     }
     String adapterName = deploymentSpec.get("engine").asText();
+    if(runtimes.get(adapterName) == null) {
+      throw new AdapterException("No engine for " + adapterName + " has been registered. Please register one and reactivate.");
+    }
     String remoteServer = runtimes.get(adapterName);
     isRemoteUp(adapterName, remoteServer);
 
@@ -144,21 +173,20 @@ public class ProxyAdapter implements Adapter {
   private boolean isRemoteUp(String envName, String remoteServer) {
     try {
       if(remoteServer == null || "".equals(remoteServer)) {
-        throw new AdapterException("Remote server not set, check that the remote environment for "
-              + envName + " has been set up");
+        throw new AdapterException("Remote server address not set, check that the remote environment for "
+                + envName + " has been set up.");
       }
       ResponseEntity<JsonNode> resp = restTemplate.getForEntity(remoteServer +"/info", JsonNode.class);
       if (resp.getStatusCode() != HttpStatus.OK || !resp.getBody().has("Status")
-          || !"Up".equals(resp.getBody().get("Status").asText())) {
+          || !"Up".equalsIgnoreCase(resp.getBody().get("Status").asText())) {
         throw new AdapterException(
-            "Remote execution environment not online, \"Up\" response not recieved from " + remoteServer
-                  + "/info");
+            "Remote execution environment not online, \"Up\" response not received from " + remoteServer + "/info");
       }
 
     } catch (HttpClientErrorException | ResourceAccessException | IllegalArgumentException e) {
       throw new AdapterException(
           "Remote execution environment not online, could not resolve remote server address, "
-              + "check that address is correct and server is running at " + remoteServer
+              + "check that address is correct and server for environment " + envName + " is running at " + remoteServer
               + " Root error " + e.getMessage());
     }
     return true;
