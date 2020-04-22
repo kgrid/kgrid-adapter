@@ -31,7 +31,8 @@ The body of the request is identical to the form presented in the list of enviro
 ```json
 {
   "type": "node",
-  "url": "http://localhost:3000"
+  "url": "http://localhost:3000",
+  "running": "true"
 }
 ```
 
@@ -87,6 +88,6 @@ For example the hello world object returns:
 ```json
 {
   "ko": "ark:/hello/proxy",
-  "result": "Welcome to Knowledge Grid, test"
+  "result": "Welcome to Knowledge Grid, Hello"
 }
 ``` 
