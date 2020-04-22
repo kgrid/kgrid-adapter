@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.kgrid.adapter.api.ActivationContext;
 import org.kgrid.adapter.api.Adapter;
 import org.kgrid.adapter.api.AdapterException;
@@ -17,20 +20,67 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException.InternalServerError;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
+@CrossOrigin
+@RestController
 public class ProxyAdapter implements Adapter {
 
   private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-  private String remoteServer;
-
   RestTemplate restTemplate = new RestTemplate();
 
   ActivationContext activationContext;
+
+  static Map<String, String> runtimes = new HashMap<>();
+
+  @PostMapping(value = "/proxy/environments",
+          consumes = MediaType.APPLICATION_JSON_VALUE,
+          produces = MediaType.APPLICATION_JSON_VALUE)
+  public ObjectNode registerRemoteRuntime(@RequestBody ObjectNode runtimeDetails) {
+
+    String runtimeName = runtimeDetails.get("type").asText();
+    String runtimeAddress = runtimeDetails.get("url").asText();
+    isRemoteUp(runtimeName, runtimeAddress);
+    if(runtimes.get(runtimeName) != null){
+      log.info("Overwriting the remote environment url that can handle " + runtimeName
+              + " with new address " + runtimeAddress);
+    } else {
+      log.info("Adding a new remote environment to the registry that can handle " + runtimeName
+              + " and is located at " + runtimeAddress);
+    }
+    runtimes.put(runtimeName, runtimeAddress);
+
+    return new ObjectMapper().createObjectNode().put("Registered", "success");
+  }
+
+  @GetMapping(value = "/proxy/environments",
+          produces = MediaType.APPLICATION_JSON_VALUE)
+  public ArrayNode getRuntimeList() {
+
+    log.info("Returning list of all available runtimes.");
+    ArrayNode runtimeList = new ObjectMapper().createArrayNode();
+    runtimes.forEach((runtimeName, runtimeAddress) -> {
+      ObjectNode runtimeDetails = new ObjectMapper().createObjectNode();
+
+      runtimeDetails.put("type", runtimeName);
+      runtimeDetails.put("url", runtimeAddress);
+      boolean running;
+      try {
+        running = isRemoteUp(runtimeName, runtimeAddress);
+      } catch (Exception e) {
+        running = false;
+        runtimeDetails.put("error_details", e.getMessage());
+      }
+      runtimeDetails.put("running", running);
+      runtimeList.add(runtimeDetails);
+    });
+    return runtimeList;
+  }
 
   @Override
   public String getType() {
@@ -39,32 +89,35 @@ public class ProxyAdapter implements Adapter {
 
   @Override
   public void initialize(ActivationContext context) {
-
-    // Check that the remote server is up
-    remoteServer = context.getProperty("kgrid.adapter.proxy.url");
-
     activationContext = context;
-
-    isRemoteUp();
   }
 
   @Override
   public Executor activate(String objectLocation, ArkId arkId, String endpointName, JsonNode deploymentSpec) {
 
-    try{
-      isRemoteUp();
+    if(!deploymentSpec.has("engine") || "".equals(deploymentSpec.get("engine").asText())) {
+      throw new AdapterException("Cannot find engine type in proxy object with arkId " + arkId.getDashArkVersion());
+    }
+    String adapterName = deploymentSpec.get("engine").asText();
+    if(runtimes.get(adapterName) == null) {
+      throw new AdapterException("No engine for " + adapterName + " has been registered. Please register one and reactivate.");
+    }
+    String remoteServer = runtimes.get(adapterName);
+    isRemoteUp(adapterName, remoteServer);
 
+    try{
       if(deploymentSpec.has("artifact") && deploymentSpec.get("artifact").isArray()) {
-        String serverHost = activationContext.getProperty("kgrid.adapter.proxy.self");
+        String serverHost = activationContext.getProperty("kgrid.adapter.proxy.vipAddress");
+        String serverPort = activationContext.getProperty("kgrid.adapter.proxy.port");
         if(serverHost == null || "".equals(serverHost)) {
-          log.warn("Server host not set correctly");
+          log.warn("kgrid.adapter.proxy.vipAddress not set correctly");
         }
         String shelfEndpoint = activationContext.getProperty("kgrid.shelf.endpoint") != null ?
             activationContext.getProperty("kgrid.shelf.endpoint"): "kos";
         ArrayNode artifactURLs = new ObjectMapper().createArrayNode();
         deploymentSpec.get("artifact").forEach(path -> {
           String artifactPath = path.asText();
-          String artifactURL = String.format("%s/%s/%s/%s", serverHost,
+          String artifactURL = String.format("%s:%s/%s/%s/%s", serverHost, serverPort,
               shelfEndpoint, arkId.getSlashArkVersion(), artifactPath);
           artifactURLs.add(artifactURL);
         });
@@ -91,7 +144,8 @@ public class ProxyAdapter implements Adapter {
                 .postForObject(remoteEndpoint, executionReq, JsonNode.class);
             return result;
           } catch (HttpClientErrorException | ResourceAccessException e) {
-            throw new AdapterException("Cannot access object payload in remote enviornment");
+            throw new AdapterException("Cannot access object payload in remote environment. " +
+                    "Cannot connect to url " + remoteEndpoint);
           }
         }
       };
@@ -109,31 +163,30 @@ public class ProxyAdapter implements Adapter {
 
   @Override
   public String status() {
-    if(isRemoteUp() && activationContext != null) {
+    if(activationContext != null) {
       return "UP" ;
     } else {
       return "DOWN";
     }
   }
 
-  private boolean isRemoteUp() {
+  private boolean isRemoteUp(String envName, String remoteServer) {
     try {
       if(remoteServer == null || "".equals(remoteServer)) {
-        throw new AdapterException("Remote server not set, check that the remote server property "
-            + "kgrid.adapter.proxy.url has been set");
+        throw new AdapterException("Remote server address not set, check that the remote environment for "
+                + envName + " has been set up.");
       }
       ResponseEntity<JsonNode> resp = restTemplate.getForEntity(remoteServer +"/info", JsonNode.class);
       if (resp.getStatusCode() != HttpStatus.OK || !resp.getBody().has("Status")
-          || !"Up".equals(resp.getBody().get("Status").asText())) {
+          || !"Up".equalsIgnoreCase(resp.getBody().get("Status").asText())) {
         throw new AdapterException(
-            "Remote execution environment not online, \"Up\" response not recieved from " + remoteServer
-                  + "/info");
+            "Remote execution environment not online, \"Up\" response not received from " + remoteServer + "/info");
       }
 
     } catch (HttpClientErrorException | ResourceAccessException | IllegalArgumentException e) {
       throw new AdapterException(
           "Remote execution environment not online, could not resolve remote server address, "
-              + "check that address is correct and server is running at " + remoteServer
+              + "check that address is correct and server for environment " + envName + " is running at " + remoteServer
               + " Root error " + e.getMessage());
     }
     return true;

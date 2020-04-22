@@ -40,6 +40,7 @@ paths:
         artifact:
           - 'src/welcome.js'
         adapter: 'PROXY'
+        engine: 'node'
         entry: 'welcome.js'
         function: 'welcome'
 components:
