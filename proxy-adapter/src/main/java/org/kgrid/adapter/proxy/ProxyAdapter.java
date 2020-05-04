@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.kgrid.adapter.api.ActivationContext;
 import org.kgrid.adapter.api.Adapter;
 import org.kgrid.adapter.api.AdapterException;
@@ -26,6 +27,8 @@ import org.springframework.web.client.HttpServerErrorException.InternalServerErr
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
+import javax.servlet.http.HttpServletRequest;
+
 @CrossOrigin
 @RestController
 public class ProxyAdapter implements Adapter {
@@ -38,10 +41,12 @@ public class ProxyAdapter implements Adapter {
 
   static Map<String, String> runtimes = new HashMap<>();
 
+  static String shelfAddress;
+
   @PostMapping(value = "/proxy/environments",
           consumes = MediaType.APPLICATION_JSON_VALUE,
           produces = MediaType.APPLICATION_JSON_VALUE)
-  public ObjectNode registerRemoteRuntime(@RequestBody ObjectNode runtimeDetails) {
+  public ObjectNode registerRemoteRuntime(@RequestBody ObjectNode runtimeDetails, HttpServletRequest req) {
 
     String runtimeName = runtimeDetails.get("type").asText();
     String runtimeAddress = runtimeDetails.get("url").asText();
@@ -53,6 +58,9 @@ public class ProxyAdapter implements Adapter {
       log.info("Adding a new remote environment to the registry that can handle " + runtimeName
               + " and is located at " + runtimeAddress);
     }
+    String thisURL = req.getRequestURL().toString();
+    shelfAddress = StringUtils.substringBefore(thisURL, "/proxy/environments");
+    log.info("The address of this server is " + shelfAddress);
     runtimes.put(runtimeName, runtimeAddress);
 
     return new ObjectMapper().createObjectNode().put("Registered", "success");
@@ -107,17 +115,20 @@ public class ProxyAdapter implements Adapter {
 
     try{
       if(deploymentSpec.has("artifact") && deploymentSpec.get("artifact").isArray()) {
-        String serverHost = activationContext.getProperty("kgrid.adapter.proxy.vipAddress");
-        String serverPort = activationContext.getProperty("kgrid.adapter.proxy.port");
-        if(serverHost == null || "".equals(serverHost)) {
-          log.warn("kgrid.adapter.proxy.vipAddress not set correctly");
+        if(shelfAddress == null || "".equals(shelfAddress)) {
+          String serverHost = activationContext.getProperty("kgrid.adapter.proxy.vipAddress");
+          String serverPort = activationContext.getProperty("kgrid.adapter.proxy.port");
+          if(serverHost == null || "".equals(serverHost)) {
+            log.error("Activator does not know own address");
+          }
+          shelfAddress = serverHost + ":" + serverPort;
         }
         String shelfEndpoint = activationContext.getProperty("kgrid.shelf.endpoint") != null ?
             activationContext.getProperty("kgrid.shelf.endpoint"): "kos";
         ArrayNode artifactURLs = new ObjectMapper().createArrayNode();
         deploymentSpec.get("artifact").forEach(path -> {
           String artifactPath = path.asText();
-          String artifactURL = String.format("%s:%s/%s/%s/%s", serverHost, serverPort,
+          String artifactURL = String.format("%s/%s/%s/%s", shelfAddress,
               shelfEndpoint, arkId.getSlashArkVersion(), artifactPath);
           artifactURLs.add(artifactURL);
         });
@@ -133,6 +144,8 @@ public class ProxyAdapter implements Adapter {
       JsonNode activationResult = restTemplate
           .postForObject(remoteServer + "/deployments", activationReq, JsonNode.class);
       String remoteEndpoint = activationResult.get("endpoint_url").asText();
+      log.info("Deployed object with ark id " + arkId + " to the " + adapterName + " runtime and got back an endpoint url of "
+            + remoteEndpoint + " at "  );
 
       return new Executor() {
         @Override
@@ -144,7 +157,7 @@ public class ProxyAdapter implements Adapter {
                 .postForObject(remoteEndpoint, executionReq, JsonNode.class);
             return result;
           } catch (HttpClientErrorException | ResourceAccessException e) {
-            throw new AdapterException("Cannot access object payload in remote environment. " +
+            throw new AdapterException("Cannot access object pay load in remote environment. " +
                     "Cannot connect to url " + remoteEndpoint);
           }
         }
