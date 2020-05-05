@@ -13,8 +13,8 @@
   <modules>
     <module>adapter-api</module>
     <module>javascript-adapter</module>
-    <module>jupyter-kernel-adapter</module>
-    <module>resource-adapter</module>
+<!--    <module>jupyter-kernel-adapter</module>-->
+<!--    <module>resource-adapter</module>-->
     <module>proxy-adapter</module>
   </modules>
 
