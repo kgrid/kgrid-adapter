@@ -89,10 +89,11 @@ public class ProxyAdapterTest {
     activationRequestBody =
         new ObjectMapper()
             .readTree(
-                "{\"artifact\":[\"http://127.0.0.1:8082/kos/hello/proxy/v1.0/src/welcome.js\"],"
+                "{\"artifact\":[\"src/welcome.js\"],"
                     + "\"engine\":\"node\","
                     + "\"adapter\":\"PROXY\",\"entry\":\"welcome.js\","
                     + "\"function\":\"welcome\","
+                    + "\"baseUrl\":\"http://127.0.0.1:8082/kos/hello/proxy/v1.0\","
                     + "\"identifier\":\"ark:/hello/proxy\","
                     + "\"version\":\"v1.0\","
                     + "\"endpoint\":\"welcome\"}");
@@ -100,10 +101,11 @@ public class ProxyAdapterTest {
     badActivationRequestBody =
         new ObjectMapper()
             .readTree(
-                "{\"artifact\":[\"http://127.0.0.1:8082/kos/hello/proxy/v1.0/src/notthere.js\"],"
+                "{\"artifact\":[\"src/notthere.js\"],"
                     + "\"engine\":\"node\","
                     + "\"adapter\":\"PROXY\",\"entry\":\"notthere.js\","
                     + "\"function\":\"welcome\","
+                    + "\"baseUrl\":\"http://127.0.0.1:8082/kos/hello/proxy/v1.0\","
                     + "\"identifier\":\"ark:/hello/proxy\","
                     + "\"version\":\"v1.0\", "
                     + "\"endpoint\":\"welcome\"}");
