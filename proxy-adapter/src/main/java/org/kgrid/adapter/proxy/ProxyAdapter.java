@@ -125,14 +125,6 @@ public class ProxyAdapter implements Adapter {
         }
         String shelfEndpoint = activationContext.getProperty("kgrid.shelf.endpoint") != null ?
             activationContext.getProperty("kgrid.shelf.endpoint"): "kos";
-//        ArrayNode artifactURLs = new ObjectMapper().createArrayNode();
-//        deploymentSpec.get("artifact").forEach(path -> {
-//          String artifactPath = path.asText();
-//          String artifactURL = String.format("%s/%s/%s/%s", shelfAddress,
-//              shelfEndpoint, arkId.getSlashArkVersion(), artifactPath);
-//          artifactURLs.add(artifactURL);
-//        });
-//        ((ObjectNode) deploymentSpec).set("artifact", artifactURLs);
         ((ObjectNode) deploymentSpec).put("baseUrl", String.format("%s/%s/%s", shelfAddress,
            shelfEndpoint, arkId.getSlashArkVersion()));
         ((ObjectNode) deploymentSpec).put("identifier", arkId.getFullArk());

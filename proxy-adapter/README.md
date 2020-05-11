@@ -55,10 +55,11 @@ It can also contain other data about the environment as needed.
 This accepts the body of a deployment specification and retrieves the required resources from the shelf associated with the proxy adapter.
 ```json
 {
-  "artifact":["http://127.0.0.1:8082/kos/hello/proxy/v1.0/src/welcome.js"],
+  "baseUrl":"http://127.0.0.1:8082/kos/hello/proxy/v1.0/",
+  "artifact":["src/welcome.js"],
   "engine":"node",
   "adapter":"PROXY",
-  "entry":"welcome.js",
+  "entry":"src/welcome.js",
   "function":"welcome",
   "identifier":"ark:/hello/proxy",
   "version":"v1.0",
