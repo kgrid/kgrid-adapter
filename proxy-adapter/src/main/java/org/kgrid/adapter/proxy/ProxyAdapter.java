@@ -132,9 +132,9 @@ public class ProxyAdapter implements Adapter {
         ((ObjectNode) deploymentSpec).put("endpoint", endpointName);
       }
 
-      HttpHeaders headers = new HttpHeaders();
+       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
-      HttpEntity<String> activationReq = new HttpEntity<>(deploymentSpec.toString(), headers);
+      HttpEntity<JsonNode> activationReq = new HttpEntity<JsonNode>(deploymentSpec, headers);
       JsonNode activationResult = restTemplate
           .postForObject(remoteServer + "/deployments", activationReq, JsonNode.class);
       String remoteEndpoint = activationResult.get("endpoint_url").asText();
