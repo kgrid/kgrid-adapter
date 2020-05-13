@@ -1,8 +1,13 @@
 package org.kgrid.adapter.proxy;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,7 +15,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.net.URI;
 import java.util.UUID;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.kgrid.adapter.api.ActivationContext;
 import org.kgrid.adapter.api.AdapterException;
@@ -23,6 +30,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.slf4j.Logger;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -30,16 +38,20 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ProxyAdapterTest {
 
-  public static final String DEPLOYMENT_DESCRIPTOR = "{\"artifact\":[\"src/welcome.js\"],"
-      + "\"engine\":\"node\","
-      + "\"adapter\":\"PROXY\",\"entry\":\"welcome.js\","
-      + "\"function\":\"welcome\"}";
+  @Rule
+  public ExpectedException expected = ExpectedException.none();
+
+  public static final String REMOTE_URL_HASH = "knlME7rU6X80";
+  private ObjectMapper mapper = new ObjectMapper();
+
   @Mock RestTemplate restTemplate;
+  @Mock Logger log;
 
   @InjectMocks @Spy private ProxyAdapter proxyAdapter = new ProxyAdapter();
 
@@ -51,15 +63,15 @@ public class ProxyAdapterTest {
   private ArkId arkId;
   private String endpointName;
   private JsonNode infoResponseBody;
-  private JsonNode deploymentDesc;
-  private JsonNode badDeploymentDesc;
+  private ObjectNode deploymentDesc;
+  private ObjectNode badDeploymentDesc;
   private JsonNode activationRequestBody;
   private JsonNode badActivationRequestBody;
   private JsonNode activationResponseBody;
   private JsonNode activationErrorResponseBody;
   private JsonNode executionResponseBody;
   private JsonNode input;
-  private ObjectMapper mapper = new ObjectMapper();
+  private HttpHeaders headers;
 
   @Before
   public void setUp() throws Exception {
@@ -73,14 +85,22 @@ public class ProxyAdapterTest {
     env.setProperty("kgrid.adapter.proxy.port", "8082");
     env.setProperty("kgrid.adapter.proxy.vipAddress", "http://127.0.0.1");
 
-    infoResponseBody =
-        mapper.readTree("{\"Status\":\"Up\",\"Url\":\"" + remoteURL + "\"}");
+    infoResponseBody = mapper.createObjectNode()
+        .put("Status", "Up")
+        .put("url", remoteURL);
 
     // For checking if remote server is up
     Mockito.when(restTemplate.getForEntity(remoteURL + "/info", JsonNode.class))
         .thenReturn(new ResponseEntity<>(infoResponseBody, HttpStatus.OK));
 
-    deploymentDesc = mapper.readTree(DEPLOYMENT_DESCRIPTOR);
+    // It all starts here
+    deploymentDesc = mapper.createObjectNode();
+    deploymentDesc
+        .put("engine", "node")
+        .put("adapter", "PROXY")
+        .put("entry", "welcome.js")
+        .put("function", "welcome")
+        .putArray("artifact").add("src/welcome.js");
 
     activationRequestBody = deploymentDesc.deepCopy();
     activationRequestBody = ((ObjectNode) activationRequestBody)
@@ -89,61 +109,32 @@ public class ProxyAdapterTest {
         .put("version","v1.0")
         .put("endpoint","welcome");
 
-    badDeploymentDesc = deploymentDesc.deepCopy();
-    ((ObjectNode) badDeploymentDesc)
-        .put("entry", "notthere.js")
-        .putArray("artifact").add("src/notthere.js");
+    activationResponseBody = mapper.createObjectNode()
+        .put("endpoint_url", remoteURL + "/" + REMOTE_URL_HASH)
+        .put("activated", "Tue Feb 18 2020 16:44:15 GMT-0500 (Eastern Standard Time)");
 
-    badActivationRequestBody = ((ObjectNode) badDeploymentDesc)
-        .put("baseUrl","http://127.0.0.1:8082/kos/hello/proxy/v1.0")
-        .put("identifier","ark:/hello/proxy")
-        .put("version","v1.0")
-        .put("endpoint","welcome");
+    activationErrorResponseBody = mapper.createObjectNode()
+        .put("Error","Cannot download http://127.0.0.1:8082/kos/hello/proxy/v1.0/src/notthere.js");
 
-    activationResponseBody = mapper
-            .readTree(
-                "{\n"
-                    + "    \"endpoint_url\": \""
-                    + remoteURL
-                    + "/knlME7rU6X80\",\n"
-                    + "    \"activated\": \"Tue Feb 18 2020 16:44:15 GMT-0500 (Eastern Standard Time)\"\n"
-                    + "}");
-
-    activationErrorResponseBody = mapper
-            .readTree(
-                "{\n"
-                    + "    \"Error\": \"Cannot download http://127.0.0.1:8082/kos/hello/proxy/v1.0/src/notthere.js\"\n"
-                    + "}");
-
-    executionResponseBody = mapper
-            .readTree(
-                "{\n"
-                    + "    \"ko\": \"ark:/hello/proxy\",\n"
-                    + "    \"result\": \"Welcome to Knowledge Grid, test\"\n"
-                    + "}");
+    executionResponseBody = mapper.createObjectNode()
+        .put("ko","ark:/hello/proxy")
+        .put("result","Welcome to Knowledge Grid, test");
 
     // For activating a remote object
-    HttpHeaders headers = new HttpHeaders();
+    headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
-    HttpEntity<JsonNode> activationReq = new HttpEntity<>(activationRequestBody, headers);
 
+    // Happy path; good case
     Mockito.when(
-            restTemplate.postForObject(remoteURL + "/deployments", activationReq, JsonNode.class))
+            restTemplate.postForObject(remoteURL + "/deployments",
+                new HttpEntity<JsonNode>(activationRequestBody, headers), JsonNode.class))
         .thenReturn(activationResponseBody);
 
-    HttpEntity<JsonNode> badActivationReq =
-        new HttpEntity<>(badActivationRequestBody, headers);
-
-    Mockito.when(
-            restTemplate.postForObject(
-                remoteURL + "/deployments", badActivationReq, JsonNode.class))
-        .thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND));
-
     // For executing a remote object
-    input = mapper.readTree("{\"name\":\"test\"}");
-    HttpEntity<JsonNode> executionReq = new HttpEntity<>(input, headers);
+    input = mapper.createObjectNode().put("name", "test");
     Mockito.when(
-            restTemplate.postForObject(remoteURL + "/knlME7rU6X80", executionReq, JsonNode.class))
+            restTemplate.postForObject(remoteURL + "/" + REMOTE_URL_HASH,
+                new HttpEntity<JsonNode>(input, headers), JsonNode.class))
         .thenReturn(executionResponseBody);
 
     // Set up the map of runtimes
@@ -205,18 +196,6 @@ public class ProxyAdapterTest {
   }
 
   @Test
-  public void testActivateRemoteNonexistantObject() {
-    try {
-      Executor activatedHello = proxyAdapter.activate("hello-proxy-v1.0", arkId, endpointName, badDeploymentDesc);
-    } catch (AdapterException e) {
-      assertTrue(
-          e.getMessage()
-              .startsWith(
-                  "Cannot activate object at address " + remoteURL + "/deployments with body"));
-    }
-  }
-
-  @Test
   public void testExecuteRemoteObject() {
     Executor activatedHello = proxyAdapter.activate("hello-proxy-v1.0", arkId, endpointName, deploymentDesc);
     JsonNode result = (JsonNode) activatedHello.execute(input);
@@ -233,7 +212,51 @@ public class ProxyAdapterTest {
   }
 
   @Test
-  public void remoteRuntimeTimeoutExceptionLoggedAndTranslated() {
+  public void testActivateRemoteNonexistantObject() {
+    Mockito.when(
+        restTemplate.postForObject(
+            anyString(),
+            any(HttpEntity.class),
+            eq(JsonNode.class)
+        ))
+        .thenThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST));
 
+    expected.expect(AdapterException.class);
+    expected.expectMessage("Cannot activate");
+    expected.expectCause(instanceOf(HttpClientErrorException.class));
+
+    proxyAdapter.activate("hello-proxy-v1.0", arkId, endpointName, deploymentDesc);
+  }
+
+  @Test
+  public void remoteRuntimeFailureGeneratesAdapterException() {
+    Mockito.when(
+        restTemplate.postForObject(
+            anyString(),
+            any(),
+            eq(JsonNode.class)))
+        .thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
+
+    expected.expect(AdapterException.class);
+    expected.expectMessage("Remote runtime server is unavailable");
+    expected.expectCause(instanceOf(HttpServerErrorException.class));
+
+    proxyAdapter.activate("hello-proxy-v1.0", arkId, endpointName, deploymentDesc);
+  }
+
+  @Test
+  public void httpServerErrorExceptionsAreLogged() {
+    Mockito.when(
+        restTemplate.postForObject(anyString(),any(),eq(JsonNode.class)))
+        .thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
+
+    try {
+      proxyAdapter.activate("hello-proxy-v1.0", arkId, endpointName, deploymentDesc);
+    } catch (AdapterException e) {
+      //
+    } catch (Exception e) {
+      fail();
+    }
+    verify(log).info("Remote runtime server is unavailable");
   }
 }

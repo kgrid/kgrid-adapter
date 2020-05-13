@@ -23,6 +23,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.HttpServerErrorException.InternalServerError;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
@@ -33,9 +34,9 @@ import javax.servlet.http.HttpServletRequest;
 @RestController
 public class ProxyAdapter implements Adapter {
 
-  private final Logger log = LoggerFactory.getLogger(this.getClass());
+  private Logger log = LoggerFactory.getLogger(this.getClass());
 
-  RestTemplate restTemplate = new RestTemplate();
+  private RestTemplate restTemplate = new RestTemplate();
 
   ActivationContext activationContext;
 
@@ -156,9 +157,12 @@ public class ProxyAdapter implements Adapter {
           }
         }
       };
-    } catch (HttpClientErrorException | InternalServerError ex) {
+    } catch (HttpClientErrorException e) {
       throw new AdapterException("Cannot activate object at address " + remoteServer + "/deployments"
-          + " with body " + deploymentSpec.toString() + " " + ex.getMessage());
+          + " with body " + deploymentSpec.toString() + " " + e.getMessage(), e);
+    } catch (HttpServerErrorException e) {
+      log.info("Remote runtime server is unavailable");
+      throw new AdapterException("Remote runtime server is unavailable", e);
     }
   }
 
