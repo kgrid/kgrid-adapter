@@ -114,7 +114,7 @@ public class ProxyAdapter implements Adapter {
     isRemoteUp(adapterName, remoteServer);
 
     try{
-      if(deploymentSpec.has("artifact") && deploymentSpec.get("artifact").isArray()) {
+      if(deploymentSpec.has("artifact")) {
         if(shelfAddress == null || "".equals(shelfAddress)) {
           String serverHost = activationContext.getProperty("kgrid.adapter.proxy.vipAddress");
           String serverPort = activationContext.getProperty("kgrid.adapter.proxy.port");
@@ -130,6 +130,9 @@ public class ProxyAdapter implements Adapter {
         ((ObjectNode) deploymentSpec).put("identifier", arkId.getFullArk());
         ((ObjectNode) deploymentSpec).put("version", arkId.getVersion());
         ((ObjectNode) deploymentSpec).put("endpoint", endpointName);
+      } else {
+        log.info("Object with arkId " + arkId.getFullArk() + " does not have an artifact in the deployment spec. Cannot create executor.");
+        return null;
       }
 
       HttpHeaders headers = new HttpHeaders();

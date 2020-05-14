@@ -1,10 +1,10 @@
 {
-  "@id" : "hello-proxy",
+  "@id" : "hello-arrayproxy",
   "@type" : "koio:KnowledgeObject",
   "title" : "the best hello world ever",
-  "identifier" : "ark:/hello/proxy",
+  "identifier" : "ark:/hello/arrayproxy",
   "version" : "v1.0",
-  "description": "A native node js object run through the proxy adapter with one artifact",
+  "description": "A native node js object run through the proxy adapter with multiple artifacts",
   "contributors" : "Kgrid Team",
   "keywords" : [ "Hello", "example" ],
   "hasServiceSpecification" : "service.yaml",
