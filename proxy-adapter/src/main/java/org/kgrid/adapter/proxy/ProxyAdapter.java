@@ -4,10 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.commons.lang3.StringUtils;
 import org.kgrid.adapter.api.ActivationContext;
 import org.kgrid.adapter.api.Adapter;
@@ -16,19 +12,17 @@ import org.kgrid.adapter.api.Executor;
 import org.kgrid.shelf.domain.ArkId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.HttpServerErrorException.InternalServerError;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.http.HttpServletRequest;
+import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
 @CrossOrigin
 @RestController
@@ -158,11 +152,10 @@ public class ProxyAdapter implements Adapter {
         }
       };
     } catch (HttpClientErrorException e) {
-      throw new AdapterException("Cannot activate object at address " + remoteServer + "/deployments"
-          + " with body " + deploymentSpec.toString() + " " + e.getMessage(), e);
+      throw new AdapterException(
+              String.format("Cannot activate object at address %s/deployments", remoteServer), e);
     } catch (HttpServerErrorException e) {
-      log.info("Remote runtime server is unavailable");
-      throw new AdapterException("Remote runtime server is unavailable", e);
+      throw new AdapterException(String.format("Remote runtime server: %s is unavailable", remoteServer), e);
     }
   }
 
