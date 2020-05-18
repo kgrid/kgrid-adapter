@@ -152,7 +152,8 @@ public class ProxyAdapter implements Adapter {
       HttpEntity<JsonNode> activationReq = new HttpEntity<JsonNode>(deploymentSpec, headers);
       JsonNode activationResult =
           restTemplate.postForObject(remoteServer + "/deployments", activationReq, JsonNode.class);
-      String remoteEndpoint = activationResult.get("endpoint_url").asText();
+      String remoteEndpoint = (null!=activationResult.get("endpoint_url")) ? activationResult.get("endpoint_url").asText() : activationResult.get("baseUrl").asText()+"/"+activationResult.get("endpoint").asText();
+
       log.info(
           "Deployed object with ark id "
               + arkId
