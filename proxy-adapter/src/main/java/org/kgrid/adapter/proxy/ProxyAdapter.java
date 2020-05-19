@@ -195,6 +195,9 @@ public class ProxyAdapter implements Adapter {
               "Invalid URL returned when activating object at address %s/deployments",
               remoteServer),
           e);
+    } catch (MalformedURLException e) {
+      throw new AdapterException(
+              String.format("Invalid URL returned when activating object at address %s/deployments", remoteServer), e);
     }
   }
 
