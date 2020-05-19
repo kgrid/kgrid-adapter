@@ -98,9 +98,7 @@ public class ProxyAdapterTest {
         .put("endpoint","welcome");
 
     activationResponseBody = mapper.createObjectNode()
-        .put("baseUrl", remoteURL)
-        .put("endpoint", REMOTE_URL_HASH)
-        .put("endpoint_url", remoteURL + "/" + REMOTE_URL_HASH)
+        .put("endpoint_url", REMOTE_URL_HASH)
         .put("activated", "Tue Feb 18 2020 16:44:15 GMT-0500 (Eastern Standard Time)");
 
     executionResponseBody = mapper.createObjectNode()

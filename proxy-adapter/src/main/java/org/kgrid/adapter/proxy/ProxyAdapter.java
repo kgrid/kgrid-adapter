@@ -21,6 +21,8 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.http.HttpServletRequest;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -152,7 +154,8 @@ public class ProxyAdapter implements Adapter {
       HttpEntity<JsonNode> activationReq = new HttpEntity<JsonNode>(deploymentSpec, headers);
       JsonNode activationResult =
           restTemplate.postForObject(remoteServer + "/deployments", activationReq, JsonNode.class);
-      String remoteEndpoint = (null!=activationResult.get("endpoint_url")) ? activationResult.get("endpoint_url").asText() : activationResult.get("baseUrl").asText()+"/"+activationResult.get("endpoint").asText();
+      URL remoteServerUrl = new URL(remoteServer);
+      URL remoteEndpoint = new URL(remoteServerUrl, activationResult.get("endpoint_url").asText());
 
       log.info(
           "Deployed object with ark id "
@@ -186,6 +189,9 @@ public class ProxyAdapter implements Adapter {
     } catch (HttpServerErrorException e) {
       throw new AdapterException(
           String.format("Remote runtime server: %s is unavailable", remoteServer), e);
+    } catch (MalformedURLException e) {
+      throw new AdapterException(
+              String.format("Invalid URL returned when activating object at address %s/deployments", remoteServer), e);
     }
   }
 
