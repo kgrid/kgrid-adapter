@@ -20,6 +20,8 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.http.HttpServletRequest;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -135,10 +137,11 @@ public class ProxyAdapter implements Adapter {
       HttpEntity<JsonNode> activationReq = new HttpEntity<JsonNode>(deploymentSpec, headers);
       JsonNode activationResult = restTemplate
           .postForObject(remoteServer + "/deployments", activationReq, JsonNode.class);
-      String remoteEndpoint = (null!=activationResult.get("endpoint_url")) ? activationResult.get("endpoint_url").asText() : activationResult.get("baseUrl").asText()+"/"+activationResult.get("endpoint").asText();
+      URL remoteServerUrl = new URL(remoteServer);
+      URL remoteEndpoint = new URL(remoteServerUrl, activationResult.get("endpoint_url").asText());
 
       log.info("Deployed object with ark id " + arkId + " to the " + adapterName + " runtime and got back an endpoint url of "
-            + remoteEndpoint + " at "  );
+            + remoteEndpoint.toString() + " at "  );
 
       return new Executor() {
         @Override
@@ -147,11 +150,11 @@ public class ProxyAdapter implements Adapter {
           try {
             HttpEntity<Object> executionReq = new HttpEntity<>(input, headers);
             Object result = restTemplate
-                .postForObject(remoteEndpoint, executionReq, JsonNode.class);
+                .postForObject(remoteEndpoint.toString(), executionReq, JsonNode.class);
             return result;
           } catch (HttpClientErrorException | ResourceAccessException e) {
             throw new AdapterException("Cannot access object pay load in remote environment. " +
-                    "Cannot connect to url " + remoteEndpoint);
+                    "Cannot connect to url " + remoteEndpoint.toString());
           }
         }
       };
@@ -160,6 +163,9 @@ public class ProxyAdapter implements Adapter {
               String.format("Cannot activate object at address %s/deployments", remoteServer), e);
     } catch (HttpServerErrorException e) {
       throw new AdapterException(String.format("Remote runtime server: %s is unavailable", remoteServer), e);
+    } catch (MalformedURLException e) {
+      throw new AdapterException(
+              String.format("Invalid URL returned when activating object at address %s/deployments", remoteServer), e);
     }
   }
 
