@@ -1,0 +1,96 @@
+openapi: 3.0.2
+info:
+  version: 1.0.0
+  title: 'Math test'
+  description: Math test
+servers:
+  - url: /math/object
+    description: Math test object
+tags:
+  - name: KO Endpoints
+    description: Math Endpoints
+paths:
+  /info:
+    post:
+      tags:
+        - KO Endpoints
+      description: info.
+      operationId: info
+      requestBody:
+        description: inputs
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/input'
+      responses:
+        '200':
+          description: response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/output'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+      x-kgrid-activation:
+        artifact: 'src/info.js'
+        adapter: 'JAVASCRIPT'
+        entry: 'src/info.js'
+        function: 'info'
+  /math:
+    post:
+      tags:
+        - KO Endpoints
+      description: math.
+      operationId: math
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/input'
+      responses:
+        '200':
+          description: response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/output'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+      x-kgrid-activation:
+        artifact: 'src/math.js'
+        adapter: 'JAVASCRIPT'
+        entry: 'src/math.js'
+        function: 'math'
+components:
+  schemas:
+    input:
+      required:
+        - name
+      properties:
+        name:
+          type: string
+    output:
+      required:
+        - result
+      properties:
+        result:
+          type: object
+    error:
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
