@@ -70,9 +70,7 @@ This accepts the body of a deployment specification and retrieves the required r
 It returns json containing url that the proxy adapter can then call with execution requests in this format:
 ```json
 {
-  "endpoint_url": "http://localhost:3000",
   "endpoint_url": "knlME7rU6X80",
-  "endpoint_url": "http://localhost:3000/knlME7rU6X80",
   "activated": "Tue Feb 18 2020 16:44:15 GMT-0500 (Eastern Standard Time)"
 }
 ```
