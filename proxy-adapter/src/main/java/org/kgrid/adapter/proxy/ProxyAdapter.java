@@ -191,7 +191,10 @@ public class ProxyAdapter implements Adapter {
           String.format("Remote runtime server: %s is unavailable", remoteServer), e);
     } catch (MalformedURLException e) {
       throw new AdapterException(
-              String.format("Invalid URL returned when activating object at address %s/deployments", remoteServer), e);
+          String.format(
+              "Invalid URL returned when activating object at address %s/deployments",
+              remoteServer),
+          e);
     }
   }
 
