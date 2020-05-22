@@ -143,7 +143,7 @@ public class ProxyAdapterTest {
     input = mapper.createObjectNode().put("name", "test");
     Mockito.when(
             restTemplate.postForObject(
-                URL_FROM_INFO_RESPONSE + "/" + REMOTE_URL_HASH,
+                URL_FROM_ACTIVATION_RESPONSE + "/" + REMOTE_URL_HASH,
                 new HttpEntity<JsonNode>(input, headers),
                 JsonNode.class))
         .thenReturn(executionResponseBody);
