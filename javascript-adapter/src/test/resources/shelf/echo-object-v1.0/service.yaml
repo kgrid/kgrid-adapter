@@ -1,0 +1,101 @@
+openapi: 3.0.2
+info:
+  version: 1.0.0
+  title: 'Echo object'
+  description: Echo object
+servers:
+  - url: /echo/object
+    description: Hello world
+tags:
+  - name: KO Endpoints
+    description: Echo Object Endpoints
+paths:
+  /echo:
+    post:
+      tags:
+        - KO Endpoints
+      description: Echo.
+      operationId: echo
+      requestBody:
+        description: inputs
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/input'
+      responses:
+        '200':
+          description: response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/output'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+      x-kgrid-activation:
+        artifact:
+          - 'src/echo.js'
+        adapter: 'JAVASCRIPT'
+        entry: 'src/echo.js'
+        function: 'echo'
+  /info:
+    post:
+      tags:
+        - KO Endpoints
+      description: Info.
+      operationId: info
+      requestBody:
+        description: inputs
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/input'
+      responses:
+        '200':
+          description: response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/output'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+      x-kgrid-activation:
+        artifact:
+          - 'src/echo.js'
+        adapter: 'JAVASCRIPT'
+        entry: 'src/echo.js'
+        function: 'info'
+components:
+  schemas:
+    input:
+      required:
+        - inputs
+      properties:
+        name:
+          type: string
+          example: Bob
+    output:
+      required:
+        - result
+      properties:
+        result:
+          type: object
+    error:
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
