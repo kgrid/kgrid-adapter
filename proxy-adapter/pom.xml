@@ -6,12 +6,13 @@
     <parent>
         <groupId>org.kgrid</groupId>
         <artifactId>kgrid-adapter</artifactId>
-        <version>${revision}</version>
+        <version>0.10.2-SNAPSHOT</version>
     </parent>
 
     <!-- The Basics -->
     <groupId>org.kgrid</groupId>
     <artifactId>proxy-adapter</artifactId>
+    <version>0.10.2-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <!-- More Project Information -->
@@ -24,14 +25,6 @@
         <developerConnection>scm:git:https://github.com/kgrid/kgrid-adapter.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
-
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <java.version>1.8</java.version>
-        <maven.compiler.source>${java.version}</maven.compiler.source>
-        <maven.compiler.target>${java.version}</maven.compiler.target>
-    </properties>
 
     <distributionManagement>
         <snapshotRepository>
@@ -48,7 +41,7 @@
         <dependency>
             <groupId>org.kgrid</groupId>
             <artifactId>adapter-api</artifactId>
-            <version>0.10.0</version>
+            <version>${kgrid.adapter.api.version}</version>
         </dependency>
         <dependency>
             <groupId>org.kgrid</groupId>
