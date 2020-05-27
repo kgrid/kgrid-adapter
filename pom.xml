@@ -21,8 +21,6 @@
         <kgrid.adapter.api.version>0.10.2-SNAPSHOT</kgrid.adapter.api.version>
     </properties>
 
-
-
     <modules>
         <module>adapter-api</module>
         <module>javascript-adapter</module>
@@ -36,6 +34,17 @@
         <connection>scm:git:https://github.com/kgrid/kgrid-adapter.git</connection>
         <developerConnection>scm:git:https://github.com/kgrid/kgrid-adapter.git</developerConnection>
     </scm>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+    </distributionManagement>
 
     <build>
         <plugins>
