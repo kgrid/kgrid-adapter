@@ -21,6 +21,8 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.http.HttpServletRequest;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,7 +36,7 @@ public class ProxyAdapter implements Adapter {
   ActivationContext activationContext;
   private Logger log = LoggerFactory.getLogger(getClass());
   @Autowired private RestTemplate restTemplate;
-
+  
   @PostMapping(
       value = "/proxy/environments",
       consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -152,14 +154,20 @@ public class ProxyAdapter implements Adapter {
       HttpEntity<JsonNode> activationReq = new HttpEntity<JsonNode>(deploymentSpec, headers);
       JsonNode activationResult =
           restTemplate.postForObject(remoteServer + "/deployments", activationReq, JsonNode.class);
-      String remoteEndpoint = activationResult.get("endpoint_url").asText();
+      //      URL remoteServerUrl = new URL(remoteServer);
+      URL remoteServerUrl =
+          (null == activationResult.get("baseUrl"))
+              ? new URL(remoteServer)
+              : new URL(activationResult.get("baseUrl").asText());
+      URL remoteEndpoint = new URL(remoteServerUrl, activationResult.get("endpoint_url").asText());
+
       log.info(
           "Deployed object with ark id "
               + arkId
               + " to the "
               + adapterName
               + " runtime and got back an endpoint url of "
-              + remoteEndpoint
+              + remoteEndpoint.toString()
               + " at ");
 
       return new Executor() {
@@ -169,13 +177,13 @@ public class ProxyAdapter implements Adapter {
           try {
             HttpEntity<Object> executionReq = new HttpEntity<>(input, headers);
             Object result =
-                restTemplate.postForObject(remoteEndpoint, executionReq, JsonNode.class);
+                restTemplate.postForObject(remoteEndpoint.toString(), executionReq, JsonNode.class);
             return result;
           } catch (HttpClientErrorException | ResourceAccessException e) {
             throw new AdapterException(
                 "Cannot access object pay load in remote environment. "
                     + "Cannot connect to url "
-                    + remoteEndpoint);
+                    + remoteEndpoint.toString());
           }
         }
       };
@@ -185,6 +193,12 @@ public class ProxyAdapter implements Adapter {
     } catch (HttpServerErrorException e) {
       throw new AdapterException(
           String.format("Remote runtime server: %s is unavailable", remoteServer), e);
+    } catch (MalformedURLException e) {
+      throw new AdapterException(
+          String.format(
+              "Invalid URL returned when activating object at address %s/deployments",
+              remoteServer),
+          e);
     }
   }
 
