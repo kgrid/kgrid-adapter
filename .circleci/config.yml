@@ -105,7 +105,9 @@ jobs:
 
       # Tigger Builds of Activator so the newest snapshot gets used
       - run:
-          name: Trigger Activator and Library to build
+          name: Trigger Activator to build
           command: |
-            curl -v -X POST --header 'Content-Type:application/json' \
-              https://circleci.com/api/v1.1/project/github/kgrid/kgrid-activator/tree/master?circle-token=$CIRCLECI_TOKEN
+            curl -v -X POST \
+              --header 'accept: application/json' \
+              --header 'content-type: application/json' \
+            https://circleci.com/api/v2/project/github/kgrid/kgrid-activator/pipeline?circle-token=$CIRCLECI_TOKEN
