@@ -31,6 +31,9 @@ jobs:
     steps:
       #must run install to ensure multi module dependencies(simple-scripts-api) are cached
       - run: mvn -DskipTests clean install dependency:resolve-plugins dependency:go-offline
+      - persist_to_workspace:
+          root: . # Persist current working directory
+          paths: ./* # Glob. Will persist everything in folder
 
   deploy: # mvn deploy does build, test, install, deploy (of the SNAPSHOT)
 
