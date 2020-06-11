@@ -8,6 +8,29 @@
     <version>0.10.3-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+    <!-- More Project Information -->
+    <name>kgrid-adapter</name>
+    <description>Parent pom for kgrid adapter project</description>
+
+    <url>https://github.com/kgrid</url>
+
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>KGrid Developer</name>
+            <email>kgrid-developers@umich.edu</email>
+            <organization>KGrid</organization>
+            <organizationUrl>http://kgrig.org</organizationUrl>
+        </developer>
+    </developers>
+
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
