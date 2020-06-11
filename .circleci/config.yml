@@ -30,7 +30,7 @@ jobs:
       - image: circleci/openjdk:11.0.1-jdk
     steps:
       #must run install to ensure multi module dependencies(simple-scripts-api) are cached
-      - run: mvn -DskipTests clean install dependency:resolve-plugins dependency:go-offline -s .circleci/settings.xml
+      - run: mvn -DskipTests clean install dependency:resolve-plugins dependency:go-offline
 
   deploy: # mvn deploy does build, test, install, deploy (of the SNAPSHOT)
 
