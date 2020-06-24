@@ -108,4 +108,4 @@ jobs:
           name: Trigger Activator and Library to build
           command: |
             curl -v -X POST --header 'Content-Type:application/json' \
-              https://circleci.com/api/v1.1/project/github/kgrid/kgrid-activator/tree/master?circle-token=$CIRCLECI_TOKEN
+              https://circleci.com/api/v1.1/project/github/kgrid/kgrid-activator/tree/main?circle-token=$CIRCLECI_TOKEN
