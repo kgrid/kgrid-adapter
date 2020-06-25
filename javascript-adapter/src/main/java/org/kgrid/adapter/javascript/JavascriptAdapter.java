@@ -64,7 +64,7 @@ public class JavascriptAdapter implements Adapter {
     // Move to use "function" as the function name instead of "entry" which now
     // specifies the main file. Fall back to entry if function isn't specified
     String functionName;
-    if (deploymentSpec.has("function")) {
+    if (deploymentSpec.has("function") && deploymentSpec.get("function") != null) {
       functionName = deploymentSpec.get("function").asText();
     } else {
       functionName = deploymentSpec.get("entry").asText();
