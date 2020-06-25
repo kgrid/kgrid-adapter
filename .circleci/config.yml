@@ -107,7 +107,8 @@ jobs:
       - run:
           name: Trigger Activator to build
           command: |
-            curl -v -X POST \
+            curl --request POST \
+              --url 'https://circleci.com/api/v2/project/github/kgrid/kgrid-activator/pipeline?circle-token=$CIRCLECI_TOKEN' \
               --header 'accept: application/json' \
               --header 'content-type: application/json' \
-            https://circleci.com/api/v2/project/github/kgrid/kgrid-activator/pipeline?circle-token=$CIRCLECI_TOKEN
+              --data '{"branch":"main"}'
