@@ -111,5 +111,5 @@ jobs:
               --url 'https://circleci.com/api/v2/project/github/kgrid/kgrid-activator/pipeline' \
               --header 'accept: application/json' \
               --header 'content-type: application/json' \
-              --header 'Circle-Token: ' + $CIRCLECI_TOKEN \
+              --header 'Circle-Token: $CIRCLECI_TOKEN' \
               --data '{"branch":"main"}'
