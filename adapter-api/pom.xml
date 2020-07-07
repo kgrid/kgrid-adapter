@@ -34,9 +34,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.kgrid</groupId>
-            <artifactId>shelf-api</artifactId>
-            <version>${kgrid.shelf.version}</version>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.11.0</version>
         </dependency>
     </dependencies>
 

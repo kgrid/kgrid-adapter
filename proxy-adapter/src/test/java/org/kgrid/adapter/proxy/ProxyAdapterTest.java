@@ -203,14 +203,14 @@ public class ProxyAdapterTest {
   public void testActivateRemoteObject() {
 
     Executor activatedHello =
-        proxyAdapter.activate(objectLocation, arkId, endpointName, deploymentDesc);
+        proxyAdapter.activate(objectLocation, arkId.getDashArkVersion(), endpointName, deploymentDesc);
     assertNotNull(activatedHello);
   }
 
   @Test
   public void testExecuteRemoteObject() {
     Executor activatedHello =
-        proxyAdapter.activate(objectLocation, arkId, endpointName, deploymentDesc);
+        proxyAdapter.activate(objectLocation, arkId.getDashArkVersion(), endpointName, deploymentDesc);
     JsonNode result = (JsonNode) activatedHello.execute(input);
     assertEquals(arkIdentifier, result.get("ko").asText());
     assertEquals("Welcome to Knowledge Grid, test", result.get("result").asText());
@@ -226,7 +226,7 @@ public class ProxyAdapterTest {
         String.format("Cannot activate object at address %s/deployments", URL_FROM_INFO_RESPONSE));
     expected.expectCause(instanceOf(HttpClientErrorException.class));
 
-    proxyAdapter.activate(objectLocation, arkId, endpointName, deploymentDesc);
+    proxyAdapter.activate(objectLocation, arkId.getDashArkVersion(), endpointName, deploymentDesc);
   }
 
   @Test
@@ -239,6 +239,6 @@ public class ProxyAdapterTest {
         String.format("Remote runtime server: %s is unavailable", URL_FROM_INFO_RESPONSE));
     expected.expectCause(instanceOf(HttpServerErrorException.class));
 
-    proxyAdapter.activate(objectLocation, arkId, endpointName, deploymentDesc);
+    proxyAdapter.activate(objectLocation, arkId.getDashArkVersion(), endpointName, deploymentDesc);
   }
 }
