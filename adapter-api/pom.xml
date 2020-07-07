@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.kgrid</groupId>
         <artifactId>kgrid-adapter</artifactId>
-        <version>0.10.2-SNAPSHOT</version>
+        <version>0.10.4-SNAPSHOT</version>
     </parent>
 
     <!-- The Basics -->

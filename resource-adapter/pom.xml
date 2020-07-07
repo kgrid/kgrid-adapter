@@ -32,9 +32,9 @@
     <dependency>
       <groupId>org.kgrid</groupId>
       <artifactId>adapter-api</artifactId>
-      <version>0.8.2</version>
+      <version>${kgrid.adapter.api.version}</version>
     </dependency>
-    
+
   </dependencies>
 
   <distributionManagement>
