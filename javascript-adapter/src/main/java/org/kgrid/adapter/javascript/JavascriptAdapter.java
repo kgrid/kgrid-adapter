@@ -39,7 +39,8 @@ public class JavascriptAdapter implements Adapter {
 
   @Override
   public Executor activate(
-      String objectLocation, ArkId arkId, String endpointName, JsonNode deploymentSpec) {
+      String objectLocation, String arkIdAsString, String endpointName, JsonNode deploymentSpec) {
+    ArkId arkId = new ArkId(arkIdAsString);
     JsonNode artifacts = deploymentSpec.get("artifact");
     String artifactLocation = null;
     if (artifacts.isArray()) {
@@ -58,7 +59,7 @@ public class JavascriptAdapter implements Adapter {
     }
     if (artifactLocation == null) {
       throw new AdapterException(
-          "No valid artifact specified for object with arkId " + arkId.getSlashArkVersion());
+          "No valid artifact specified for object with arkId " + arkId);
     }
 
     // Move to use "function" as the function name instead of "entry" which now
@@ -73,7 +74,6 @@ public class JavascriptAdapter implements Adapter {
     return activate(Paths.get(objectLocation, artifactLocation), functionName);
   }
 
-  @Override
   public Executor activate(Path artifact, String function) {
 
     CompiledScript script = getCompiledScript(artifact.toString(), function);

@@ -103,32 +103,22 @@ public class ProxyAdapter implements Adapter {
   }
 
   @Override
-  public Executor activate(
-      String objectLocation, ArkId arkId, String endpointName, JsonNode deploymentSpec) {
+  public Executor activate(Path resource, String entry) {
+    return null;
+  }
 
-    if (!deploymentSpec.has("engine") || "".equals(deploymentSpec.get("engine").asText())) {
-      throw new AdapterException(
-          "Cannot find engine type in proxy object with arkId " + arkId.getDashArkVersion());
-    }
-    String adapterName = deploymentSpec.get("engine").asText();
-    if (runtimes.get(adapterName) == null) {
-      throw new AdapterException(
-          "No engine for "
-              + adapterName
-              + " has been registered. Please register one and reactivate.");
-    }
-    String remoteServer = runtimes.get(adapterName);
-    isRemoteUp(adapterName, remoteServer);
+  @Override
+  public Executor activate(
+          String objectLocation, String arkIdAsString, String endpointName, JsonNode deploymentSpec) {
+    ArkId arkId = new ArkId(arkIdAsString);
+    String engine = getEngine(deploymentSpec);
+    String remoteServer = runtimes.get(engine);
+    isRemoteUp(engine, remoteServer);
 
     try {
       if (deploymentSpec.has("artifact")) {
         if (shelfAddress == null || "".equals(shelfAddress)) {
-          String serverHost = activationContext.getProperty("kgrid.adapter.proxy.vipAddress");
-          String serverPort = activationContext.getProperty("kgrid.adapter.proxy.port");
-          if (serverHost == null || "".equals(serverHost)) {
-            log.error("Activator does not know own address");
-          }
-          shelfAddress = serverHost + ":" + serverPort;
+          shelfAddress = buildShelfAddress();
         }
         String shelfEndpoint =
             activationContext.getProperty("kgrid.shelf.endpoint") != null
@@ -144,7 +134,7 @@ public class ProxyAdapter implements Adapter {
       } else {
         log.info(
             "Object with arkId "
-                + arkId.getFullArk()
+                + arkId
                 + " does not have an artifact in the deployment spec. Cannot create executor.");
         return null;
       }
@@ -154,7 +144,6 @@ public class ProxyAdapter implements Adapter {
       HttpEntity<JsonNode> activationReq = new HttpEntity<JsonNode>(deploymentSpec, headers);
       JsonNode activationResult =
           restTemplate.postForObject(remoteServer + "/deployments", activationReq, JsonNode.class);
-      //      URL remoteServerUrl = new URL(remoteServer);
       URL remoteServerUrl =
           (null == activationResult.get("baseUrl"))
               ? new URL(remoteServer)
@@ -165,7 +154,7 @@ public class ProxyAdapter implements Adapter {
           "Deployed object with ark id "
               + arkId
               + " to the "
-              + adapterName
+              + engine
               + " runtime and got back an endpoint url of "
               + remoteEndpoint.toString()
               + " at ");
@@ -202,10 +191,29 @@ public class ProxyAdapter implements Adapter {
     }
   }
 
-  @Override
-  @Deprecated
-  public Executor activate(Path resource, String entry) {
-    return null;
+  private String buildShelfAddress() {
+    String serverHost = activationContext.getProperty("kgrid.adapter.proxy.vipAddress");
+    String serverPort = activationContext.getProperty("kgrid.adapter.proxy.port");
+    if (serverHost == null || "".equals(serverHost)) {
+      log.error("Activator does not know own address");
+    }
+    return serverHost + ":" + serverPort;
+  }
+
+  private String getEngine(JsonNode deploymentSpec) {
+    String engine;
+    if (!deploymentSpec.has("engine") || "".equals(deploymentSpec.get("engine").asText())) {
+      throw new AdapterException(
+          "Cannot find engine type in proxy object");
+    }
+    engine = deploymentSpec.get("engine").asText();
+    if (runtimes.get(engine) == null) {
+      throw new AdapterException(
+          "No engine for "
+              + engine
+              + " has been registered. Please register one and reactivate.");
+    }
+    return engine;
   }
 
   @Override
@@ -217,12 +225,12 @@ public class ProxyAdapter implements Adapter {
     }
   }
 
-  private boolean isRemoteUp(String envName, String remoteServer) {
+  private boolean isRemoteUp(String engine, String remoteServer) {
     try {
       if (remoteServer == null || "".equals(remoteServer)) {
         throw new AdapterException(
             "Remote server address not set, check that the remote environment for "
-                + envName
+                + engine
                 + " has been set up.");
       }
       ResponseEntity<JsonNode> resp =
@@ -240,7 +248,7 @@ public class ProxyAdapter implements Adapter {
       throw new AdapterException(
           "Remote execution environment not online, could not resolve remote server address, "
               + "check that address is correct and server for environment "
-              + envName
+              + engine
               + " is running at "
               + remoteServer
               + " Root error "
