@@ -1,0 +1,5 @@
+endpoints:
+  /welcome:
+    artifact: 'src/welcome.js'
+    adapter: 'JAVASCRIPT'
+    function: 'hello'

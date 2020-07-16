@@ -1,2 +1,0 @@
-def badFun(inputs):
-return ""
