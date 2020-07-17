@@ -22,7 +22,6 @@
     <modules>
         <module>adapter-api</module>
         <module>javascript-adapter</module>
-        <module>javascript-v8-adapter</module>
         <module>proxy-adapter</module>
     </modules>
 

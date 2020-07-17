@@ -1,5 +1,0 @@
-endpoints:
-  /welcome:
-    artifact: 'src/exec.js'
-    adapter: 'JAVASCRIPT'
-    function: 'exec'
