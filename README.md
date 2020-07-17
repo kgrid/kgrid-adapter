@@ -45,16 +45,26 @@ This javascript engine uses the GraalVM javascript engine to run object payloads
 Any simple javascript file containing functions can be easily run using this adapter but more complex objects with 
 external dependencies should be bundled into one file. (See the guide on creating a bundled KO.)
 
+Example deployment descriptor:
+```yaml
+endpoints:
+  /welcome:
+    artifact:
+      - 'src/welcome.js'
+    adapter: 'V8'
+    function: 'welcome'
+```
 ### Pitfalls and current limitations
 
 Currently the v8 engine cannot return native javascript arrays. You can work around this problem by using javascript objects instead. 
 Or use the graal polyglot methods for creating a java array in javascript: 
 ```javascript
-var intArray = Java.type('int[]');
-var iarr = new intArray(3);
+let intArray = Java.type('int[]');
+let iarr = new intArray(3);
+return iarr;
 ```
 
-Calling other objects from within a javascript object is supported but limited to passing primitives due to how graal manages contexts.
+Calling other knowledge grid objects from javascript is supported but limited to passing primitive inputs due to how graal manages contexts.
 You can call another knowledge object from within your object using the code:
 ```javascript
     let executor = context.getExecutor("hello-world/v1.0/welcome");
@@ -68,10 +78,24 @@ See [issue 631](https://github.com/oracle/graal/issues/631) for the graal projec
 ## Javascript Nashorn Adapter
 The nashorn engine used by this adapter is being removed and use of this adapter is discouraged. Instead use either the js v8 adapter or the proxy adapter.
 
+Example deployment descriptor:
+```yaml
+endpoints:
+  /welcome:
+    artifact: 'src/welcome.js'
+    adapter: 'JAVASCRIPT'
+    function: 'welcome'
+```
+
+### Pitfalls and current limitations
+
+The nashorn adapter transforms javascript arrays to a map with the key for each value set to the value's index in the 
+array when it returns the value. Because of this using javascript arrays is discouraged.
+
 ## Proxy Adapter
 The proxy adapter exposes endpoints which can be to register external runtime environments and make them accessible to execute object paylods.
 
-Currently there is a [node external runtime](https://github.com/kgrid/kgrid-node-runtime) that runs objects in the NodeJS environment.
+There is a [node external runtime](https://github.com/kgrid/kgrid-node-runtime) that runs objects in the NodeJS environment.
 To run objects in the remove environment download, install and run that project after starting the activator. 
 Note that the deployment descriptor of a proxy adapter object contains two more fields than a local javascript object:
 ```yaml
@@ -88,10 +112,12 @@ The `engine` field tells the adapter which remote environment the code is run in
 
 The proxy adapter can run any NodeJS project that you can run locally.
 
+More external runtimes are planned such as a native python environment.
+
 ## Additional Information
 
 ### Adding a new Adapter
-Creating new Adapters requires you implement the Adapter API interface. The Adapter's utilize Java Services and require that you package your adapter with a service identifer the META-INF.
+Creating new Adapters requires you implement the Adapter API interface. The adapters utilize Java Services and require that you package your adapter with a service identifer the META-INF.
 Create a file in the `resources/META-INF/services` directory called `org.kgrid.adapter` with a single line that is the fully qualified class name of your adapter. 
 ```
 resources
