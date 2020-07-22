@@ -203,14 +203,16 @@ public class ProxyAdapterTest {
   public void testActivateRemoteObject() {
 
     Executor activatedHello =
-        proxyAdapter.activate(objectLocation, arkId.getDashArkVersion(), endpointName, deploymentDesc);
+        proxyAdapter.activate(
+            objectLocation, arkId, endpointName, deploymentDesc);
     assertNotNull(activatedHello);
   }
 
   @Test
   public void testExecuteRemoteObject() {
     Executor activatedHello =
-        proxyAdapter.activate(objectLocation, arkId.getDashArkVersion(), endpointName, deploymentDesc);
+        proxyAdapter.activate(
+            objectLocation, arkId, endpointName, deploymentDesc);
     JsonNode result = (JsonNode) activatedHello.execute(input);
     assertEquals(arkIdentifier, result.get("ko").asText());
     assertEquals("Welcome to Knowledge Grid, test", result.get("result").asText());

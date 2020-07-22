@@ -33,10 +33,10 @@ public class ProxyAdapter implements Adapter {
 
   static Map<String, String> runtimes = new HashMap<>();
   static String shelfAddress;
-  ActivationContext activationContext;
+  static ActivationContext activationContext;
   private Logger log = LoggerFactory.getLogger(getClass());
   @Autowired private RestTemplate restTemplate;
-  
+
   @PostMapping(
       value = "/proxy/environments",
       consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -92,6 +92,14 @@ public class ProxyAdapter implements Adapter {
     return runtimeList;
   }
 
+  @GetMapping(value = "/proxy/{ark}/{version}/**")
+  public byte[] getCodeArtifact(
+      @PathVariable String ark, @PathVariable String version, HttpServletRequest request) {
+    String requestURI = request.getRequestURI();
+    String path = ark + "-" + version + StringUtils.substringAfterLast(requestURI, version);
+    return activationContext.getBinary(path);
+  }
+
   @Override
   public String getType() {
     return "PROXY";
@@ -109,8 +117,8 @@ public class ProxyAdapter implements Adapter {
 
   @Override
   public Executor activate(
-          String objectLocation, String arkIdAsString, String endpointName, JsonNode deploymentSpec) {
-    ArkId arkId = new ArkId(arkIdAsString);
+      String objectLocation, String arkIdAsString, String endpointName, JsonNode deploymentSpec) {
+    // Ark string is naan-name/version
     String engine = getEngine(deploymentSpec);
     String remoteServer = runtimes.get(engine);
     isRemoteUp(engine, remoteServer);
@@ -120,21 +128,20 @@ public class ProxyAdapter implements Adapter {
         if (shelfAddress == null || "".equals(shelfAddress)) {
           shelfAddress = buildShelfAddress();
         }
-        String shelfEndpoint =
-            activationContext.getProperty("kgrid.shelf.endpoint") != null
-                ? activationContext.getProperty("kgrid.shelf.endpoint")
-                : "kos";
+        String proxyEndpoint = "proxy";
         ((ObjectNode) deploymentSpec)
-            .put(
-                "baseUrl",
-                String.format("%s/%s/%s", shelfAddress, shelfEndpoint, arkId.getSlashArkVersion()));
-        ((ObjectNode) deploymentSpec).put("identifier", arkId.getFullArk());
-        ((ObjectNode) deploymentSpec).put("version", arkId.getVersion());
+            .put("baseUrl", String.format("%s/%s/%s", shelfAddress, proxyEndpoint, arkIdAsString));
+        String[] arkVersion = arkIdAsString.split("/");
+        String[] naanName = arkVersion[0].split("-");
+        String arkId = "ark:/" + naanName[0] + "/" + naanName[1];
+        ((ObjectNode) deploymentSpec).put("identifier", arkId);
+        ((ObjectNode) deploymentSpec)
+            .put("version", arkVersion[1]);
         ((ObjectNode) deploymentSpec).put("endpoint", endpointName);
       } else {
         log.info(
             "Object with arkId "
-                + arkId
+                + arkIdAsString
                 + " does not have an artifact in the deployment spec. Cannot create executor.");
         return null;
       }
@@ -152,7 +159,7 @@ public class ProxyAdapter implements Adapter {
 
       log.info(
           "Deployed object with ark id "
-              + arkId
+              + arkIdAsString
               + " to the "
               + engine
               + " runtime and got back an endpoint url of "
@@ -203,15 +210,12 @@ public class ProxyAdapter implements Adapter {
   private String getEngine(JsonNode deploymentSpec) {
     String engine;
     if (!deploymentSpec.has("engine") || "".equals(deploymentSpec.get("engine").asText())) {
-      throw new AdapterException(
-          "Cannot find engine type in proxy object");
+      throw new AdapterException("Cannot find engine type in proxy object");
     }
     engine = deploymentSpec.get("engine").asText();
     if (runtimes.get(engine) == null) {
       throw new AdapterException(
-          "No engine for "
-              + engine
-              + " has been registered. Please register one and reactivate.");
+          "No engine for " + engine + " has been registered. Please register one and reactivate.");
     }
     return engine;
   }
