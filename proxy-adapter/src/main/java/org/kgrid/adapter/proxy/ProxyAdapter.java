@@ -9,7 +9,6 @@ import org.kgrid.adapter.api.ActivationContext;
 import org.kgrid.adapter.api.Adapter;
 import org.kgrid.adapter.api.AdapterException;
 import org.kgrid.adapter.api.Executor;
-import org.kgrid.shelf.domain.ArkId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
