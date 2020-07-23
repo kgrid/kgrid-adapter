@@ -105,7 +105,7 @@ public class ProxyAdapterTest {
                     + ARK_NAAN
                     + "-"
                     + ARK_NAME
-                    + "/"
+                    + "-"
                     + ARK_VERSION)
             .put("identifier", arkIdentifier)
             .put("version", ARK_VERSION)
@@ -161,7 +161,7 @@ public class ProxyAdapterTest {
             try {
               code = helloWorldCode.getInputStream().readAllBytes();
             } catch (Exception e) {
-              e.printStackTrace();
+              throw new AdapterException(e.getMessage(), e);
             }
             return code;
           }

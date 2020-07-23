@@ -91,11 +91,10 @@ public class ProxyAdapter implements Adapter {
     return runtimeList;
   }
 
-  @GetMapping(value = "/proxy/{ark}/{version}/**")
-  public byte[] getCodeArtifact(
-      @PathVariable String ark, @PathVariable String version, HttpServletRequest request) {
+  @GetMapping(value = "/proxy/{location}/**")
+  public byte[] getCodeArtifact(@PathVariable String location, HttpServletRequest request) {
     String requestURI = request.getRequestURI();
-    String path = ark + "-" + version + StringUtils.substringAfterLast(requestURI, version);
+    String path = location + StringUtils.substringAfterLast(requestURI, location);
     return activationContext.getBinary(path);
   }
 
@@ -129,7 +128,7 @@ public class ProxyAdapter implements Adapter {
         }
         String proxyEndpoint = "proxy";
         ((ObjectNode) deploymentSpec)
-            .put("baseUrl", String.format("%s/%s/%s", shelfAddress, proxyEndpoint, arkIdAsString));
+            .put("baseUrl", String.format("%s/%s/%s", shelfAddress, proxyEndpoint, objectLocation));
         String[] arkVersion = arkIdAsString.split("/");
         String[] naanName = arkVersion[0].split("-");
         String arkId = "ark:/" + naanName[0] + "/" + naanName[1];
