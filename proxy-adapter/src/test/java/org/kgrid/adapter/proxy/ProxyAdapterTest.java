@@ -11,14 +11,12 @@ import org.junit.runner.RunWith;
 import org.kgrid.adapter.api.ActivationContext;
 import org.kgrid.adapter.api.AdapterException;
 import org.kgrid.adapter.api.Executor;
-import org.kgrid.shelf.domain.ArkId;
-import org.kgrid.shelf.repository.CompoundDigitalObjectStore;
-import org.kgrid.shelf.repository.FilesystemCDOStore;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.*;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.web.client.HttpClientErrorException;
@@ -51,11 +49,10 @@ public class ProxyAdapterTest {
   private ObjectMapper mapper = new ObjectMapper();
   @InjectMocks @Spy private ProxyAdapter proxyAdapter = new ProxyAdapter();
 
-  private CompoundDigitalObjectStore cdoStore;
-
+  ClassPathResource helloWorldCode = new ClassPathResource("shelf/hello-proxy-v1.0/src/welcome.js");
   private MockEnvironment env = new MockEnvironment();
 
-  private ArkId arkId;
+  private String arkId;
   private String endpointName;
   private JsonNode infoResponseBody;
   private ObjectNode deploymentDesc;
@@ -69,11 +66,11 @@ public class ProxyAdapterTest {
   @Before
   public void setUp() throws Exception {
 
-    arkId = new ArkId(ARK_NAAN, ARK_NAME, ARK_VERSION);
+    arkId = ARK_NAAN + "-" + ARK_NAME + "/" + ARK_VERSION;
     endpointName = "welcome";
 
     URI uri = getClass().getResource("/shelf").toURI();
-    cdoStore = new FilesystemCDOStore("filesystem:" + uri.toString());
+
 
     env.setProperty("kgrid.adapter.proxy.port", PROXY_PORT);
     env.setProperty("kgrid.adapter.proxy.vipAddress", PROXY_VIP_ADDRESS);
@@ -104,11 +101,11 @@ public class ProxyAdapterTest {
                 PROXY_VIP_ADDRESS
                     + ":"
                     + PROXY_PORT
-                    + "/kos/"
+                    + "/proxy/"
                     + ARK_NAAN
-                    + "/"
+                    + "-"
                     + ARK_NAME
-                    + "/"
+                    + "-"
                     + ARK_VERSION)
             .put("identifier", arkIdentifier)
             .put("version", ARK_VERSION)
@@ -160,7 +157,13 @@ public class ProxyAdapterTest {
 
           @Override
           public byte[] getBinary(String pathToBinary) {
-            return cdoStore.getBinary(pathToBinary);
+            byte[] code = null;
+            try {
+              code = helloWorldCode.getInputStream().readAllBytes();
+            } catch (Exception e) {
+              throw new AdapterException(e.getMessage(), e);
+            }
+            return code;
           }
 
           @Override
@@ -203,14 +206,16 @@ public class ProxyAdapterTest {
   public void testActivateRemoteObject() {
 
     Executor activatedHello =
-        proxyAdapter.activate(objectLocation, arkId.getDashArkVersion(), endpointName, deploymentDesc);
+        proxyAdapter.activate(
+            objectLocation, arkId, endpointName, deploymentDesc);
     assertNotNull(activatedHello);
   }
 
   @Test
   public void testExecuteRemoteObject() {
     Executor activatedHello =
-        proxyAdapter.activate(objectLocation, arkId.getDashArkVersion(), endpointName, deploymentDesc);
+        proxyAdapter.activate(
+            objectLocation, arkId, endpointName, deploymentDesc);
     JsonNode result = (JsonNode) activatedHello.execute(input);
     assertEquals(arkIdentifier, result.get("ko").asText());
     assertEquals("Welcome to Knowledge Grid, test", result.get("result").asText());
@@ -226,7 +231,7 @@ public class ProxyAdapterTest {
         String.format("Cannot activate object at address %s/deployments", URL_FROM_INFO_RESPONSE));
     expected.expectCause(instanceOf(HttpClientErrorException.class));
 
-    proxyAdapter.activate(objectLocation, arkId.getDashArkVersion(), endpointName, deploymentDesc);
+    proxyAdapter.activate(objectLocation, arkId, endpointName, deploymentDesc);
   }
 
   @Test
@@ -239,6 +244,6 @@ public class ProxyAdapterTest {
         String.format("Remote runtime server: %s is unavailable", URL_FROM_INFO_RESPONSE));
     expected.expectCause(instanceOf(HttpServerErrorException.class));
 
-    proxyAdapter.activate(objectLocation, arkId.getDashArkVersion(), endpointName, deploymentDesc);
+    proxyAdapter.activate(objectLocation, arkId, endpointName, deploymentDesc);
   }
 }
