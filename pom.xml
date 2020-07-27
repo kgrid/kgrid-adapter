@@ -16,7 +16,7 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <junit.version>4.12</junit.version>
         <kgrid.shelf.version>2.1.3</kgrid.shelf.version>
-        <kgrid.adapter.api.version>0.10.5-SNAPSHOT</kgrid.adapter.api.version>
+        <kgrid.adapter.api.version>0.10.5</kgrid.adapter.api.version>
     </properties>
 
     <modules>
