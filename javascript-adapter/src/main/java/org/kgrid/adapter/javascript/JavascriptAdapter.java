@@ -6,21 +6,14 @@ import org.kgrid.adapter.api.ActivationContext;
 import org.kgrid.adapter.api.Adapter;
 import org.kgrid.adapter.api.AdapterException;
 import org.kgrid.adapter.api.Executor;
-import org.kgrid.shelf.ShelfResourceNotFound;
-import org.kgrid.shelf.domain.ArkId;
-import org.kgrid.shelf.repository.CompoundDigitalObjectStore;
 
 import javax.script.*;
+import java.net.URI;
 import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Map;
 
 public class JavascriptAdapter implements Adapter {
 
-  Map<String, Object> endpoints;
   ScriptEngine engine;
-  CompoundDigitalObjectStore cdoStore;
   private ActivationContext activationContext;
 
   @Override
@@ -39,8 +32,7 @@ public class JavascriptAdapter implements Adapter {
 
   @Override
   public Executor activate(
-      String objectLocation, String arkIdAsString, String endpointName, JsonNode deploymentSpec) {
-    ArkId arkId = new ArkId(arkIdAsString);
+          URI objectLocation, String naan, String name, String version, String endpointName, JsonNode deploymentSpec) {
     JsonNode artifacts = deploymentSpec.get("artifact");
     String artifactLocation = null;
     if (artifacts.isArray()) {
@@ -59,7 +51,7 @@ public class JavascriptAdapter implements Adapter {
     }
     if (artifactLocation == null) {
       throw new AdapterException(
-          "No valid artifact specified for object with arkId " + arkId);
+          "No valid artifact specified for object with arkId " + naan + "/" + name + "/" + version);
     }
 
     // Move to use "function" as the function name instead of "entry" which now
@@ -71,12 +63,12 @@ public class JavascriptAdapter implements Adapter {
       functionName = deploymentSpec.get("entry").asText();
     }
 
-    return activate(Paths.get(objectLocation, artifactLocation), functionName);
+    return activate(objectLocation.resolve(artifactLocation), functionName);
   }
 
-  public Executor activate(Path artifact, String function) {
+  public Executor activate(URI artifact, String function) {
 
-    CompiledScript script = getCompiledScript(artifact.toString(), function);
+    CompiledScript script = getCompiledScript(artifact, function);
 
     final ScriptContext context = new SimpleScriptContext();
     context.setBindings(engine.createBindings(), ScriptContext.ENGINE_SCOPE);
@@ -102,11 +94,11 @@ public class JavascriptAdapter implements Adapter {
     };
   }
 
-  private CompiledScript getCompiledScript(String artifact, String entry) {
+  private CompiledScript getCompiledScript(URI artifact, String entry) {
     byte[] binary;
     try {
       binary = activationContext.getBinary(artifact);
-    } catch (ShelfResourceNotFound e) {
+    } catch (Exception e) {
       throw new AdapterException(e.getMessage(), e);
     }
     if (binary == null) {

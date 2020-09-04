@@ -21,6 +21,7 @@ import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.http.HttpServletRequest;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -92,9 +93,9 @@ public class ProxyAdapter implements Adapter {
   }
 
   @GetMapping(value = "/proxy/{location}/**")
-  public byte[] getCodeArtifact(@PathVariable String location, HttpServletRequest request) {
+  public byte[] getCodeArtifact(@PathVariable URI location, HttpServletRequest request) {
     String requestURI = request.getRequestURI();
-    String path = location + StringUtils.substringAfterLast(requestURI, location);
+    URI path = URI.create(StringUtils.substringAfterLast(requestURI, "proxy/"));
     return activationContext.getBinary(path);
   }
 
@@ -109,18 +110,14 @@ public class ProxyAdapter implements Adapter {
   }
 
   @Override
-  public Executor activate(Path resource, String entry) {
-    return null;
-  }
-
-  @Override
   public Executor activate(
-      String objectLocation, String arkIdAsString, String endpointName, JsonNode deploymentSpec) {
+          URI objectLocation, String naan, String name, String version, String endpointName, JsonNode deploymentSpec) {
     // Ark string is naan-name/version
     String engine = getEngine(deploymentSpec);
     String remoteServer = runtimes.get(engine);
     isRemoteUp(engine, remoteServer);
 
+    String arkId = "ark:/" + naan + "/" + name + "/" + version;
     try {
       if (deploymentSpec.has("artifact")) {
         if (shelfAddress == null || "".equals(shelfAddress)) {
@@ -129,24 +126,22 @@ public class ProxyAdapter implements Adapter {
         String proxyEndpoint = "proxy";
         ((ObjectNode) deploymentSpec)
             .put("baseUrl", String.format("%s/%s/%s", shelfAddress, proxyEndpoint, objectLocation));
-        String[] arkVersion = arkIdAsString.split("/");
-        String[] naanName = arkVersion[0].split("-");
-        String arkId = "ark:/" + naanName[0] + "/" + naanName[1];
+
         ((ObjectNode) deploymentSpec).put("identifier", arkId);
         ((ObjectNode) deploymentSpec)
-            .put("version", arkVersion[1]);
+            .put("version", version);
         ((ObjectNode) deploymentSpec).put("endpoint", endpointName);
       } else {
         log.info(
             "Object with arkId "
-                + arkIdAsString
+                + arkId
                 + " does not have an artifact in the deployment spec. Cannot create executor.");
         return null;
       }
 
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
-      HttpEntity<JsonNode> activationReq = new HttpEntity<JsonNode>(deploymentSpec, headers);
+      HttpEntity<JsonNode> activationReq = new HttpEntity<>(deploymentSpec, headers);
       JsonNode activationResult =
           restTemplate.postForObject(remoteServer + "/deployments", activationReq, JsonNode.class);
       URL remoteServerUrl =
@@ -157,7 +152,7 @@ public class ProxyAdapter implements Adapter {
 
       log.info(
           "Deployed object with ark id "
-              + arkIdAsString
+              + arkId
               + " to the "
               + engine
               + " runtime and got back an endpoint url of "

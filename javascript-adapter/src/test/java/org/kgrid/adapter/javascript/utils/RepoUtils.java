@@ -2,21 +2,17 @@ package org.kgrid.adapter.javascript.utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import java.io.IOException;
 import java.nio.file.Files;
-import org.kgrid.shelf.domain.ArkId;
+
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
 
 public class RepoUtils {
 
-  public static final ArkId A_B = new ArkId("a-b");
-  public static final ArkId C_D = new ArkId("c-d");
-  public static final ArkId A_B_C = new ArkId("a-b/c");
-  public static final ArkId C_D_E = new ArkId("c-d/e");
-  public static final ArkId C_D_F = new ArkId("c-d/f");
+
   static ResourcePatternResolver resourceResolver = new PathMatchingResourcePatternResolver();
   static ObjectMapper yamlMapper = new YAMLMapper();
   static ObjectMapper jsonMapper = new ObjectMapper();
