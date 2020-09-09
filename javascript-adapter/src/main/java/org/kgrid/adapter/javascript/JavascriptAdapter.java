@@ -13,12 +13,12 @@ import java.nio.charset.Charset;
 
 public class JavascriptAdapter implements Adapter {
 
-  ScriptEngine engine;
+  private ScriptEngine engine;
   private ActivationContext activationContext;
 
   @Override
   public String getType() {
-    return "javascript".toUpperCase();
+    return "JAVASCRIPT";
   }
 
   @Override
@@ -32,26 +32,31 @@ public class JavascriptAdapter implements Adapter {
 
   @Override
   public Executor activate(
-          URI objectLocation, String naan, String name, String version, String endpointName, JsonNode deploymentSpec) {
-    JsonNode artifacts = deploymentSpec.get("artifact");
+      URI objectLocation,
+      String naan,
+      String name,
+      String version,
+      String endpointName,
+      JsonNode deploymentSpec) {
+    JsonNode artifact = deploymentSpec.get("artifact");
+    if (artifact == null) {
+      throw new AdapterException(
+          "No valid artifact specified for object with arkId " + naan + "/" + name + "/" + version);
+    }
     String artifactLocation = null;
-    if (artifacts.isArray()) {
+    if (artifact.isArray()) {
       if (deploymentSpec.has("entry")) {
-        for (int i = 0; i < artifacts.size(); i++) {
-          if (deploymentSpec.get("entry").asText().equals(artifacts.get(i).asText())) {
-            artifactLocation = artifacts.get(i).asText();
+        for (int i = 0; i < artifact.size(); i++) {
+          if (deploymentSpec.get("entry").asText().equals(artifact.get(i).asText())) {
+            artifactLocation = artifact.get(i).asText();
             break;
           }
         }
       } else {
-        artifactLocation = artifacts.get(0).asText();
+        artifactLocation = artifact.get(0).asText();
       }
     } else {
-      artifactLocation = artifacts.asText();
-    }
-    if (artifactLocation == null) {
-      throw new AdapterException(
-          "No valid artifact specified for object with arkId " + naan + "/" + name + "/" + version);
+      artifactLocation = artifact.asText();
     }
 
     // Move to use "function" as the function name instead of "entry" which now
@@ -66,7 +71,7 @@ public class JavascriptAdapter implements Adapter {
     return activate(objectLocation.resolve(artifactLocation), functionName);
   }
 
-  public Executor activate(URI artifact, String function) {
+  private Executor activate(URI artifact, String function) {
 
     CompiledScript script = getCompiledScript(artifact, function);
 
@@ -87,9 +92,7 @@ public class JavascriptAdapter implements Adapter {
               "unable to reset script context " + artifact.toString() + " : " + ex.getMessage(),
               ex);
         }
-        Object output = ((ScriptObjectMirror) bindings).callMember(function, input);
-
-        return output;
+        return  ((ScriptObjectMirror) bindings).callMember(function, input);
       }
     };
   }
