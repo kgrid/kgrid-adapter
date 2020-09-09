@@ -5,7 +5,7 @@
     <!-- The Basics -->
     <groupId>org.kgrid</groupId>
     <artifactId>kgrid-adapter</artifactId>
-    <version>0.10.6-SNAPSHOT</version>
+    <version>0.10.7</version>
     <packaging>pom</packaging>
 
     <properties>
@@ -50,7 +50,7 @@
         <url>https://github.com/kgrid/kgrid-adapter</url>
         <connection>scm:git:https://github.com/kgrid/kgrid-adapter.git</connection>
         <developerConnection>scm:git:https://github.com/kgrid/kgrid-adapter.git</developerConnection>
-      <tag>HEAD</tag>
+      <tag>kgrid-adapter-0.10.7</tag>
   </scm>
 
     <distributionManagement>
