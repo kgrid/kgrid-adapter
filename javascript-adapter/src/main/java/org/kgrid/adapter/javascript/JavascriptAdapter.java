@@ -6,26 +6,19 @@ import org.kgrid.adapter.api.ActivationContext;
 import org.kgrid.adapter.api.Adapter;
 import org.kgrid.adapter.api.AdapterException;
 import org.kgrid.adapter.api.Executor;
-import org.kgrid.shelf.ShelfResourceNotFound;
-import org.kgrid.shelf.domain.ArkId;
-import org.kgrid.shelf.repository.CompoundDigitalObjectStore;
 
 import javax.script.*;
+import java.net.URI;
 import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Map;
 
 public class JavascriptAdapter implements Adapter {
 
-  Map<String, Object> endpoints;
-  ScriptEngine engine;
-  CompoundDigitalObjectStore cdoStore;
+  private ScriptEngine engine;
   private ActivationContext activationContext;
 
   @Override
   public String getType() {
-    return "javascript".toUpperCase();
+    return "JAVASCRIPT";
   }
 
   @Override
@@ -39,27 +32,31 @@ public class JavascriptAdapter implements Adapter {
 
   @Override
   public Executor activate(
-      String objectLocation, String arkIdAsString, String endpointName, JsonNode deploymentSpec) {
-    ArkId arkId = new ArkId(arkIdAsString);
-    JsonNode artifacts = deploymentSpec.get("artifact");
+      URI objectLocation,
+      String naan,
+      String name,
+      String version,
+      String endpointName,
+      JsonNode deploymentSpec) {
+    JsonNode artifact = deploymentSpec.get("artifact");
+    if (artifact == null) {
+      throw new AdapterException(
+          "No valid artifact specified for object with arkId " + naan + "/" + name + "/" + version);
+    }
     String artifactLocation = null;
-    if (artifacts.isArray()) {
+    if (artifact.isArray()) {
       if (deploymentSpec.has("entry")) {
-        for (int i = 0; i < artifacts.size(); i++) {
-          if (deploymentSpec.get("entry").asText().equals(artifacts.get(i).asText())) {
-            artifactLocation = artifacts.get(i).asText();
+        for (int i = 0; i < artifact.size(); i++) {
+          if (deploymentSpec.get("entry").asText().equals(artifact.get(i).asText())) {
+            artifactLocation = artifact.get(i).asText();
             break;
           }
         }
       } else {
-        artifactLocation = artifacts.get(0).asText();
+        artifactLocation = artifact.get(0).asText();
       }
     } else {
-      artifactLocation = artifacts.asText();
-    }
-    if (artifactLocation == null) {
-      throw new AdapterException(
-          "No valid artifact specified for object with arkId " + arkId);
+      artifactLocation = artifact.asText();
     }
 
     // Move to use "function" as the function name instead of "entry" which now
@@ -71,12 +68,12 @@ public class JavascriptAdapter implements Adapter {
       functionName = deploymentSpec.get("entry").asText();
     }
 
-    return activate(Paths.get(objectLocation, artifactLocation), functionName);
+    return activate(objectLocation.resolve(artifactLocation), functionName);
   }
 
-  public Executor activate(Path artifact, String function) {
+  private Executor activate(URI artifact, String function) {
 
-    CompiledScript script = getCompiledScript(artifact.toString(), function);
+    CompiledScript script = getCompiledScript(artifact, function);
 
     final ScriptContext context = new SimpleScriptContext();
     context.setBindings(engine.createBindings(), ScriptContext.ENGINE_SCOPE);
@@ -95,18 +92,16 @@ public class JavascriptAdapter implements Adapter {
               "unable to reset script context " + artifact.toString() + " : " + ex.getMessage(),
               ex);
         }
-        Object output = ((ScriptObjectMirror) bindings).callMember(function, input);
-
-        return output;
+        return  ((ScriptObjectMirror) bindings).callMember(function, input);
       }
     };
   }
 
-  private CompiledScript getCompiledScript(String artifact, String entry) {
+  private CompiledScript getCompiledScript(URI artifact, String entry) {
     byte[] binary;
     try {
       binary = activationContext.getBinary(artifact);
-    } catch (ShelfResourceNotFound e) {
+    } catch (Exception e) {
       throw new AdapterException(e.getMessage(), e);
     }
     if (binary == null) {
