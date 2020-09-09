@@ -5,13 +5,13 @@
     <parent>
         <groupId>org.kgrid</groupId>
         <artifactId>kgrid-adapter</artifactId>
-        <version>0.10.7-SNAPSHOT</version>
+        <version>0.10.8-SNAPSHOT</version>
     </parent>
 
     <!-- The Basics -->
     <groupId>org.kgrid</groupId>
     <artifactId>adapter-api</artifactId>
-    <version>0.10.7-SNAPSHOT</version>
+    <version>0.10.8-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <!-- More Project Information -->
