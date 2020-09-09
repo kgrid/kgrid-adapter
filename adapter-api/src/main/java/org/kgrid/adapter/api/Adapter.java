@@ -3,7 +3,6 @@ package org.kgrid.adapter.api;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import java.net.URI;
-import java.nio.file.Path;
 
 public interface Adapter {
 
