@@ -95,7 +95,7 @@ public class ProxyAdapter implements Adapter {
   @GetMapping(value = "/proxy/{location}/**")
   public byte[] getCodeArtifact(@PathVariable URI location, HttpServletRequest request) {
     String requestURI = request.getRequestURI();
-    URI path = URI.create(StringUtils.substringAfterLast(requestURI, "proxy/"));
+    URI path = URI.create(StringUtils.substringAfter(requestURI, "proxy/"));
     return activationContext.getBinary(path);
   }
 
