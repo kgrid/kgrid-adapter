@@ -66,7 +66,7 @@ public class ProxyAdapterTest {
   @Before
   public void setUp() throws Exception {
 
-    endpointName = "welcome";
+    endpointName = "/welcome";
 
     URI uri = getClass().getResource("/shelf").toURI();
 
@@ -108,7 +108,7 @@ public class ProxyAdapterTest {
                     + ARK_VERSION)
             .put("identifier", arkIdentifier)
             .put("version", ARK_VERSION)
-            .put("endpoint", "welcome");
+            .put("endpoint", "/welcome");
 
     activationResponseBody =
         mapper

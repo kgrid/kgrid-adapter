@@ -31,6 +31,12 @@ public class JavascriptAdapter implements Adapter {
   }
 
   @Override
+  public Executor activate(URI absoluteLocation, URI endpointURI, JsonNode deploymentSpec) {
+    String[] endpointParts = endpointURI.toString().split("/");
+    return activate(absoluteLocation, endpointParts[0], endpointParts[1], endpointParts[2], endpointParts[3], deploymentSpec);
+  }
+
+  @Override
   public Executor activate(
       URI objectLocation,
       String naan,

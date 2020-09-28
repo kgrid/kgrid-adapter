@@ -110,14 +110,12 @@ public class ProxyAdapter implements Adapter {
   }
 
   @Override
-  public Executor activate(
-          URI objectLocation, String naan, String name, String version, String endpointName, JsonNode deploymentSpec) {
-    // Ark string is naan-name/version
+  public Executor activate(URI absoluteLocation, URI endpointURI, JsonNode deploymentSpec) {
     String engine = getEngine(deploymentSpec);
     String remoteServer = runtimes.get(engine);
     isRemoteUp(engine, remoteServer);
 
-    String arkId = "ark:/" + naan + "/" + name + "/" + version;
+    String[] uriParts = endpointURI.toString().split("/");
     try {
       if (deploymentSpec.has("artifact")) {
         if (shelfAddress == null || "".equals(shelfAddress)) {
@@ -125,16 +123,18 @@ public class ProxyAdapter implements Adapter {
         }
         String proxyEndpoint = "proxy";
         ((ObjectNode) deploymentSpec)
-            .put("baseUrl", String.format("%s/%s/%s", shelfAddress, proxyEndpoint, objectLocation));
+            .put(
+                "baseUrl",
+                String.format("%s/%s/%s", shelfAddress, proxyEndpoint, absoluteLocation));
 
-        ((ObjectNode) deploymentSpec).put("identifier", arkId);
         ((ObjectNode) deploymentSpec)
-            .put("version", version);
-        ((ObjectNode) deploymentSpec).put("endpoint", endpointName);
+            .put("identifier", "ark:/" + uriParts[0] + "/" + uriParts[1] + "/" + uriParts[2]);
+        ((ObjectNode) deploymentSpec).put("version", uriParts[2]);
+        ((ObjectNode) deploymentSpec).put("endpoint", "/" + uriParts[3]);
       } else {
         log.info(
-            "Object with arkId "
-                + arkId
+            "Object with endpoint id "
+                + endpointURI
                 + " does not have an artifact in the deployment spec. Cannot create executor.");
         return null;
       }
@@ -151,8 +151,8 @@ public class ProxyAdapter implements Adapter {
       URL remoteEndpoint = new URL(remoteServerUrl, activationResult.get("endpoint_url").asText());
 
       log.info(
-          "Deployed object with ark id "
-              + arkId
+          "Deployed object with endpoint id "
+              + endpointURI
               + " to the "
               + engine
               + " runtime and got back an endpoint url of "
@@ -189,6 +189,20 @@ public class ProxyAdapter implements Adapter {
               remoteServer),
           e);
     }
+  }
+
+  @Override
+  public Executor activate(
+      URI objectLocation,
+      String naan,
+      String name,
+      String version,
+      String endpointName,
+      JsonNode deploymentSpec) {
+    return activate(
+        objectLocation,
+        URI.create(naan + "/" + name + "/" + version + "/" + endpointName.substring(1)),
+        deploymentSpec);
   }
 
   private String buildShelfAddress() {
