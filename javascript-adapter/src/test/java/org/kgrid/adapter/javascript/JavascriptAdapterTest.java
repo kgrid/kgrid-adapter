@@ -38,6 +38,7 @@ public class JavascriptAdapterTest {
   private static final String NAME = "NAME";
   private static final String VERSION = "VERSION";
   private static final String ENDPOINT = "ENDPOINT";
+  private static final URI ENDPOINT_URI = URI.create(NAAN + "/" + NAME + "/" + VERSION + "/" + ENDPOINT);
   private static final URI OBJECT_LOCATION = URI.create("LOCATION/");
   private static final String HELLO_CODE = "function welcome(inputs){\n" +
           "  var name = inputs.name;\n" +
@@ -72,7 +73,7 @@ public class JavascriptAdapterTest {
   public void activate_createsGoodExecutorThatRuns() {
     Map<Object, Object> inputs = new HashMap<>();
     inputs.put("name", "Hank");
-    Executor ex = adapter.activate(OBJECT_LOCATION, NAAN, NAME, VERSION, ENDPOINT, deploymentSpec);
+    Executor ex = adapter.activate(OBJECT_LOCATION, ENDPOINT_URI, deploymentSpec);
     assertEquals("Welcome, Hank", ex.execute(inputs));
   }
 
@@ -88,7 +89,7 @@ public class JavascriptAdapterTest {
             .add("src/goodbye.js");
     Map<Object, Object> inputs = new HashMap<>();
     inputs.put("name", "Hank");
-    Executor ex = adapter.activate(OBJECT_LOCATION, NAAN, NAME, VERSION, ENDPOINT, deploymentSpec);
+    Executor ex = adapter.activate(OBJECT_LOCATION, ENDPOINT_URI, deploymentSpec);
     assertEquals("Welcome, Hank", ex.execute(inputs));
   }
 
@@ -101,7 +102,7 @@ public class JavascriptAdapterTest {
             .put(ARTIFACT, SRC_WELCOME_JS);
     Map<Object, Object> inputs = new HashMap<>();
     inputs.put("name", "Hank");
-    Executor ex = adapter.activate(OBJECT_LOCATION, NAAN, NAME, VERSION, ENDPOINT, deploymentSpec);
+    Executor ex = adapter.activate(OBJECT_LOCATION, ENDPOINT_URI, deploymentSpec);
     assertEquals("Welcome, Hank", ex.execute(inputs));
   }
 
@@ -112,7 +113,7 @@ public class JavascriptAdapterTest {
             .put(ADAPTER, JAVASCRIPT)
             .put(FUNCTION, WELCOME);
 
-    assertThrows(AdapterException.class, ()-> adapter.activate(OBJECT_LOCATION, NAAN, NAME, VERSION, ENDPOINT, deploymentSpec));
+    assertThrows(AdapterException.class, ()-> adapter.activate(OBJECT_LOCATION, ENDPOINT_URI, deploymentSpec));
 
   }
 
@@ -125,26 +126,26 @@ public class JavascriptAdapterTest {
             .put(ARTIFACT, SRC_WELCOME_JS);
     Map<Object, Object> inputs = new HashMap<>();
     inputs.put("name", "Hank");
-    Executor ex = adapter.activate(OBJECT_LOCATION, NAAN, NAME, VERSION, ENDPOINT, deploymentSpec);
+    Executor ex = adapter.activate(OBJECT_LOCATION, ENDPOINT_URI, deploymentSpec);
     assertEquals("Welcome, Hank", ex.execute(inputs));
   }
 
   @Test
   public void activate_ThrowstErrorWhenScriptDoesntCompile() {
     when(context.getBinary(any())).thenReturn("function welcome(){{{{".getBytes());
-    assertThrows(AdapterException.class, ()-> adapter.activate(OBJECT_LOCATION, NAAN, NAME, VERSION, ENDPOINT, deploymentSpec));
+    assertThrows(AdapterException.class, ()-> adapter.activate(OBJECT_LOCATION, ENDPOINT_URI, deploymentSpec));
   }
 
   @Test
   public void activate_throwsErrorWithNullBinary() {
     when(context.getBinary(any())).thenReturn(null);
-    assertThrows(AdapterException.class, ()-> adapter.activate(OBJECT_LOCATION, NAAN, NAME, VERSION, ENDPOINT, deploymentSpec));
+    assertThrows(AdapterException.class, ()-> adapter.activate(OBJECT_LOCATION, ENDPOINT_URI, deploymentSpec));
   }
 
   @Test
   public void activate_throwsErrorWhenGetBinaryErrors() {
     when(context.getBinary(any())).thenThrow(new RuntimeException("Bad stuff"));
-    assertThrows(AdapterException.class, ()-> adapter.activate(OBJECT_LOCATION, NAAN, NAME, VERSION, ENDPOINT, deploymentSpec));
+    assertThrows(AdapterException.class, ()-> adapter.activate(OBJECT_LOCATION, ENDPOINT_URI, deploymentSpec));
   }
 
   @Test

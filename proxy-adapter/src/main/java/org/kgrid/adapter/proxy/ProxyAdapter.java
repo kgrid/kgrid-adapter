@@ -191,20 +191,6 @@ public class ProxyAdapter implements Adapter {
     }
   }
 
-  @Override
-  public Executor activate(
-      URI objectLocation,
-      String naan,
-      String name,
-      String version,
-      String endpointName,
-      JsonNode deploymentSpec) {
-    return activate(
-        objectLocation,
-        URI.create(naan + "/" + name + "/" + version + "/" + endpointName.substring(1)),
-        deploymentSpec);
-  }
-
   private String buildShelfAddress() {
     String serverHost = activationContext.getProperty("kgrid.adapter.proxy.vipAddress");
     String serverPort = activationContext.getProperty("kgrid.adapter.proxy.port");

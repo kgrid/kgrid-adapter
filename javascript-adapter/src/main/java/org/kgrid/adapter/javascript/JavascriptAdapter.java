@@ -32,22 +32,10 @@ public class JavascriptAdapter implements Adapter {
 
   @Override
   public Executor activate(URI absoluteLocation, URI endpointURI, JsonNode deploymentSpec) {
-    String[] endpointParts = endpointURI.toString().split("/");
-    return activate(absoluteLocation, endpointParts[0], endpointParts[1], endpointParts[2], endpointParts[3], deploymentSpec);
-  }
-
-  @Override
-  public Executor activate(
-      URI objectLocation,
-      String naan,
-      String name,
-      String version,
-      String endpointName,
-      JsonNode deploymentSpec) {
     JsonNode artifact = deploymentSpec.get("artifact");
     if (artifact == null) {
       throw new AdapterException(
-          "No valid artifact specified for object with arkId " + naan + "/" + name + "/" + version);
+          "No valid artifact specified for object with endpoint id " + endpointURI);
     }
     String artifactLocation = null;
     if (artifact.isArray()) {
@@ -74,7 +62,7 @@ public class JavascriptAdapter implements Adapter {
       functionName = deploymentSpec.get("entry").asText();
     }
 
-    return activate(objectLocation.resolve(artifactLocation), functionName);
+    return activate(absoluteLocation.resolve(artifactLocation), functionName);
   }
 
   private Executor activate(URI artifact, String function) {
@@ -98,7 +86,7 @@ public class JavascriptAdapter implements Adapter {
               "unable to reset script context " + artifact.toString() + " : " + ex.getMessage(),
               ex);
         }
-        return  ((ScriptObjectMirror) bindings).callMember(function, input);
+        return ((ScriptObjectMirror) bindings).callMember(function, input);
       }
     };
   }
