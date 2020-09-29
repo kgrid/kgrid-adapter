@@ -10,7 +10,7 @@ public interface Adapter {
 
   void initialize(ActivationContext context);
 
-  Executor activate(URI objectLocation, String naan, String name, String version, String endpointName, JsonNode deploymentSpec);
+  Executor activate(URI absoluteLocation, URI endpointURI, JsonNode deploymentSpec);
 
   String status();
 }
