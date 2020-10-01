@@ -32,7 +32,7 @@ Questions: Are multiple types allowed? Shouldn't the same term be used in the de
 ### Create a runtime (register)
 
 
-```json
+```
 POST /proxy/runtimes
 Content-type: application/json
 {
@@ -56,7 +56,7 @@ This bears more design work to see how typical service registries handle these c
 
 ### Get `/proxy/runtimes/{type}`
 Returns a list of the runtime environments registered with the proxy adapter:
-```json
+```
 {
 "type": "node",
 "url": "http://localhost:3000",
@@ -86,7 +86,7 @@ Question: Should the /info endpoint return the same object as the Proxy Adapters
 
 ### Post `/deployments`
 This accepts the body of a deployment specification and retrieves the required resources from the shelf associated with the proxy adapter.
-```json
+```
 POST `localhost:3000/deployments`
 Content-type: application/json
 {
@@ -107,7 +107,7 @@ Questions:
 * Can we make the resource being sent effectively a deployment spec, esp. once we update deployment spec to include the endpoint path?
 
 It returns json containing url that the proxy adapter can then call with execution requests in this format:
-```json
+```
 Location: /knlME7rU6X80
 {
   "url": "/knlME7rU6X80",
