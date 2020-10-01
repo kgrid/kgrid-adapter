@@ -101,9 +101,7 @@ public class ProxyAdapterTest {
                     + ARK_NAME
                     + "-"
                     + ARK_VERSION)
-            .put("identifier", arkIdentifier)
-            .put("version", ARK_VERSION)
-            .put("endpoint", ENDPOINT_NAME);
+            .put("uri", ENDPOINT_URI.toString());
 
     activationResponseBody =
         mapper

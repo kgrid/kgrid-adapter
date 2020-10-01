@@ -115,7 +115,6 @@ public class ProxyAdapter implements Adapter {
     String remoteServer = runtimes.get(engine);
     isRemoteUp(engine, remoteServer);
 
-    String[] uriParts = endpointURI.toString().split("/");
     try {
       if (deploymentSpec.has("artifact")) {
         if (shelfAddress == null || "".equals(shelfAddress)) {
@@ -127,10 +126,7 @@ public class ProxyAdapter implements Adapter {
                 "baseUrl",
                 String.format("%s/%s/%s", shelfAddress, proxyEndpoint, absoluteLocation));
 
-        ((ObjectNode) deploymentSpec)
-            .put("identifier", "ark:/" + uriParts[0] + "/" + uriParts[1] + "/" + uriParts[2]);
-        ((ObjectNode) deploymentSpec).put("version", uriParts[2]);
-        ((ObjectNode) deploymentSpec).put("endpoint", "/" + uriParts[3]);
+        ((ObjectNode) deploymentSpec).put("uri", endpointURI.toString());
       } else {
         log.info(
             "Object with endpoint id "
