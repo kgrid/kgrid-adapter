@@ -23,7 +23,6 @@ import javax.servlet.http.HttpServletRequest;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -111,33 +110,16 @@ public class ProxyAdapter implements Adapter {
 
   @Override
   public Executor activate(URI absoluteLocation, URI endpointURI, JsonNode deploymentSpec) {
-    String engine = getEngine(deploymentSpec);
+    String engine = deploymentSpec.at("/engine").asText();
     String remoteServer = runtimes.get(engine);
     isRemoteUp(engine, remoteServer);
 
-    String[] uriParts = endpointURI.toString().split("/");
     try {
-      if (deploymentSpec.has("artifact")) {
-        if (shelfAddress == null || "".equals(shelfAddress)) {
-          shelfAddress = buildShelfAddress();
-        }
-        String proxyEndpoint = "proxy";
-        ((ObjectNode) deploymentSpec)
-            .put(
-                "baseUrl",
-                String.format("%s/%s/%s", shelfAddress, proxyEndpoint, absoluteLocation));
+      String proxyEndpoint = "proxy";
+      ((ObjectNode) deploymentSpec)
+          .put("baseUrl", String.format("%s/%s/%s", shelfAddress, proxyEndpoint, absoluteLocation));
 
-        ((ObjectNode) deploymentSpec)
-            .put("identifier", "ark:/" + uriParts[0] + "/" + uriParts[1] + "/" + uriParts[2]);
-        ((ObjectNode) deploymentSpec).put("version", uriParts[2]);
-        ((ObjectNode) deploymentSpec).put("endpoint", "/" + uriParts[3]);
-      } else {
-        log.info(
-            "Object with endpoint id "
-                + endpointURI
-                + " does not have an artifact in the deployment spec. Cannot create executor.");
-        return null;
-      }
+      ((ObjectNode) deploymentSpec).put("uri", endpointURI.toString());
 
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
@@ -191,28 +173,6 @@ public class ProxyAdapter implements Adapter {
     }
   }
 
-  private String buildShelfAddress() {
-    String serverHost = activationContext.getProperty("kgrid.adapter.proxy.vipAddress");
-    String serverPort = activationContext.getProperty("kgrid.adapter.proxy.port");
-    if (serverHost == null || "".equals(serverHost)) {
-      log.error("Activator does not know own address");
-    }
-    return serverHost + ":" + serverPort;
-  }
-
-  private String getEngine(JsonNode deploymentSpec) {
-    String engine;
-    if (!deploymentSpec.has("engine") || "".equals(deploymentSpec.get("engine").asText())) {
-      throw new AdapterException("Cannot find engine type in proxy object");
-    }
-    engine = deploymentSpec.get("engine").asText();
-    if (runtimes.get(engine) == null) {
-      throw new AdapterException(
-          "No engine for " + engine + " has been registered. Please register one and reactivate.");
-    }
-    return engine;
-  }
-
   @Override
   public String status() {
     if (activationContext != null) {
@@ -223,13 +183,13 @@ public class ProxyAdapter implements Adapter {
   }
 
   private boolean isRemoteUp(String engine, String remoteServer) {
+    if (remoteServer == null || "".equals(remoteServer)) {
+      throw new AdapterException(
+              "Remote server address not set, check that the remote environment for "
+                      + engine
+                      + " has been set up.");
+    }
     try {
-      if (remoteServer == null || "".equals(remoteServer)) {
-        throw new AdapterException(
-            "Remote server address not set, check that the remote environment for "
-                + engine
-                + " has been set up.");
-      }
       ResponseEntity<JsonNode> resp =
           restTemplate.getForEntity(remoteServer + "/info", JsonNode.class);
       if (resp.getStatusCode() != HttpStatus.OK
