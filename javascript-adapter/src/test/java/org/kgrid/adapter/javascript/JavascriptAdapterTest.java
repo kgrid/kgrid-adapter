@@ -14,7 +14,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -25,6 +27,7 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class JavascriptAdapterTest {
   private static final String JAVASCRIPT = "JAVASCRIPT";
+  private static final List<String> JS_LIST = Collections.singletonList(JAVASCRIPT);
   private static final String SRC_WELCOME_JS = "src/welcome.js";
   private static final String WELCOME = "welcome";
   private static final String ADAPTER = "adapter";
@@ -66,7 +69,7 @@ public class JavascriptAdapterTest {
 
   @Test
   public void getType_returnsJS() {
-    assertEquals(JAVASCRIPT, adapter.getType());
+    assertEquals(JS_LIST, adapter.getEngines());
   }
 
   @Test
