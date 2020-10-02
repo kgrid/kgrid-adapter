@@ -23,7 +23,9 @@ import javax.servlet.http.HttpServletRequest;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @CrossOrigin
@@ -99,8 +101,8 @@ public class ProxyAdapter implements Adapter {
   }
 
   @Override
-  public String getType() {
-    return "PROXY";
+  public List<String> getEngines() {
+    return new ArrayList(runtimes.keySet());
   }
 
   @Override

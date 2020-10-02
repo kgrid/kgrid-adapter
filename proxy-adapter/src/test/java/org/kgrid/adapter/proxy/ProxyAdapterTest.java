@@ -26,11 +26,11 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.*;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -237,5 +237,10 @@ public class ProxyAdapterTest {
     expected.expectCause(instanceOf(HttpServerErrorException.class));
 
     proxyAdapter.activate(objectLocation, ENDPOINT_URI, deploymentDesc);
+  }
+
+  @Test
+  public void returnsCorrectEngine(){
+    assertEquals(Collections.singletonList("node"), proxyAdapter.getEngines());
   }
 }

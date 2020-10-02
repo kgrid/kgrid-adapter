@@ -10,6 +10,8 @@ import org.kgrid.adapter.api.Executor;
 import javax.script.*;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.util.Collections;
+import java.util.List;
 
 public class JavascriptAdapter implements Adapter {
 
@@ -17,8 +19,8 @@ public class JavascriptAdapter implements Adapter {
   private ActivationContext activationContext;
 
   @Override
-  public String getType() {
-    return "JAVASCRIPT";
+  public List<String> getEngines() {
+    return Collections.singletonList("JAVASCRIPT");
   }
 
   @Override
