@@ -47,7 +47,6 @@ public class ProxyAdapter implements Adapter {
 
     String runtimeName = runtimeDetails.get("type").asText();
     String runtimeAddress = runtimeDetails.get("url").asText();
-    isRemoteUp(runtimeName, runtimeAddress);
     if (runtimes.get(runtimeName) != null) {
       log.info(
           "Overwriting the remote environment url that can handle "
@@ -132,7 +131,7 @@ public class ProxyAdapter implements Adapter {
           (null == activationResult.get("baseUrl"))
               ? new URL(remoteServer)
               : new URL(activationResult.get("baseUrl").asText());
-      URL remoteEndpoint = new URL(remoteServerUrl, activationResult.get("endpoint_url").asText());
+      URL remoteEndpoint = new URL(remoteServerUrl, activationResult.get("endpointUrl").asText());
 
       log.info(
           "Deployed object with endpoint id "

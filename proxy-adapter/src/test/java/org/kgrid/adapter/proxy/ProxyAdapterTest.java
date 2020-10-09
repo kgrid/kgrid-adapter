@@ -102,7 +102,7 @@ public class ProxyAdapterTest {
         mapper
             .createObjectNode()
             .put("baseUrl", PROXY_SHELF_URL)
-            .put("endpoint_url", REMOTE_URL_HASH)
+            .put("endpointUrl", REMOTE_URL_HASH)
             .put("activated", "Tue Feb 18 2020 16:44:15 GMT-0500 (Eastern Standard Time)");
 
     executionResponseBody =
