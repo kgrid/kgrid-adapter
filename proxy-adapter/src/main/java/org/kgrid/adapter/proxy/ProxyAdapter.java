@@ -151,9 +151,19 @@ public class ProxyAdapter implements Adapter {
             Object result =
                 restTemplate.postForObject(remoteEndpoint.toString(), executionReq, JsonNode.class);
             return result;
-          } catch (HttpClientErrorException | ResourceAccessException e) {
+          } catch (HttpClientErrorException e) {
+            if (e.getStatusCode().equals(HttpStatus.BAD_REQUEST)) {
+              throw new AdapterException(
+                  "Runtime error when executing object. Check code and inputs.");
+            } else {
+              throw new AdapterException(
+                      "Cannot access object payload in remote environment. "
+                              + "Cannot connect to url "
+                              + remoteEndpoint.toString());
+            }
+          } catch (ResourceAccessException e) {
             throw new AdapterException(
-                "Cannot access object pay load in remote environment. "
+                "Cannot access object payload in remote environment. "
                     + "Cannot connect to url "
                     + remoteEndpoint.toString());
           }
