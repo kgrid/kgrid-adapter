@@ -15,7 +15,6 @@
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <junit.version>4.13</junit.version>
-        <kgrid.adapter.api.version>0.10.13-SNAPSHOT</kgrid.adapter.api.version>
     </properties>
 
     <modules>
