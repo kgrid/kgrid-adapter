@@ -45,6 +45,7 @@ public class ProxyAdapterTest {
   private static final URI ENDPOINT_URI =
       URI.create(ARK_NAAN + "/" + ARK_NAME + "/" + ARK_VERSION + ENDPOINT_NAME);
   private static final String REMOTE_URL_HASH = "remote-hash";
+  private static final String TYPE_JSON = "application/json";
   private final URI objectLocation = URI.create(ARK_NAAN + "-" + ARK_NAME + "-" + ARK_VERSION);
   @Rule public ExpectedException expected = ExpectedException.none();
   @Mock RestTemplate restTemplate;
@@ -108,7 +109,6 @@ public class ProxyAdapterTest {
     executionResponseBody =
         mapper
             .createObjectNode()
-            .put("ko", arkIdentifier)
             .put("result", "Welcome to Knowledge Grid, test");
 
     // For activating a remote object
@@ -208,9 +208,8 @@ public class ProxyAdapterTest {
   @Test
   public void testExecuteRemoteObject() {
     Executor activatedHello = proxyAdapter.activate(objectLocation, ENDPOINT_URI, deploymentDesc);
-    JsonNode result = (JsonNode) activatedHello.execute(input);
-    assertEquals(arkIdentifier, result.get("ko").asText());
-    assertEquals("Welcome to Knowledge Grid, test", result.get("result").asText());
+    JsonNode result = (JsonNode) activatedHello.execute(input, TYPE_JSON);
+    assertEquals("Welcome to Knowledge Grid, test", result.asText());
   }
 
   @Test

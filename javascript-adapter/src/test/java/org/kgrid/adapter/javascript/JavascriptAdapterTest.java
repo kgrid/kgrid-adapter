@@ -43,6 +43,7 @@ public class JavascriptAdapterTest {
   private static final String ENDPOINT = "ENDPOINT";
   private static final URI ENDPOINT_URI = URI.create(NAAN + "/" + NAME + "/" + VERSION + "/" + ENDPOINT);
   private static final URI OBJECT_LOCATION = URI.create("LOCATION/");
+  private static final String TYPE_JSON = "application/json";
   private static final String HELLO_CODE = "function welcome(inputs){\n" +
           "  var name = inputs.name;\n" +
           "  return \"Welcome, \" + name;\n" +
@@ -77,7 +78,7 @@ public class JavascriptAdapterTest {
     Map<Object, Object> inputs = new HashMap<>();
     inputs.put("name", "Hank");
     Executor ex = adapter.activate(OBJECT_LOCATION, ENDPOINT_URI, deploymentSpec);
-    assertEquals("Welcome, Hank", ex.execute(inputs));
+    assertEquals("Welcome, Hank", ex.execute(inputs, TYPE_JSON));
   }
 
   @Test
@@ -93,7 +94,7 @@ public class JavascriptAdapterTest {
     Map<Object, Object> inputs = new HashMap<>();
     inputs.put("name", "Hank");
     Executor ex = adapter.activate(OBJECT_LOCATION, ENDPOINT_URI, deploymentSpec);
-    assertEquals("Welcome, Hank", ex.execute(inputs));
+    assertEquals("Welcome, Hank", ex.execute(inputs, TYPE_JSON));
   }
 
   @Test
@@ -106,7 +107,7 @@ public class JavascriptAdapterTest {
     Map<Object, Object> inputs = new HashMap<>();
     inputs.put("name", "Hank");
     Executor ex = adapter.activate(OBJECT_LOCATION, ENDPOINT_URI, deploymentSpec);
-    assertEquals("Welcome, Hank", ex.execute(inputs));
+    assertEquals("Welcome, Hank", ex.execute(inputs, TYPE_JSON));
   }
 
   @Test
@@ -130,7 +131,7 @@ public class JavascriptAdapterTest {
     Map<Object, Object> inputs = new HashMap<>();
     inputs.put("name", "Hank");
     Executor ex = adapter.activate(OBJECT_LOCATION, ENDPOINT_URI, deploymentSpec);
-    assertEquals("Welcome, Hank", ex.execute(inputs));
+    assertEquals("Welcome, Hank", ex.execute(inputs, TYPE_JSON));
   }
 
   @Test

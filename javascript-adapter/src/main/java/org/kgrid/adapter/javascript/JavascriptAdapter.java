@@ -79,7 +79,7 @@ public class JavascriptAdapter implements Adapter {
     return new Executor() {
 
       @Override
-      public synchronized Object execute(Object input) {
+      public synchronized Object execute(Object input, String contentType) {
 
         try {
           script.eval(context);

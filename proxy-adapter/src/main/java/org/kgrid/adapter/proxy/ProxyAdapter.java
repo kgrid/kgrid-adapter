@@ -123,7 +123,7 @@ public class ProxyAdapter implements Adapter {
       ((ObjectNode) deploymentSpec).put("uri", endpointURI.toString());
 
       HttpHeaders headers = new HttpHeaders();
-      headers.setContentType(MediaType.APPLICATION_JSON);
+      headers.add("Content-Type", "application/json");
       HttpEntity<JsonNode> activationReq = new HttpEntity<>(deploymentSpec, headers);
       JsonNode activationResult =
           restTemplate.postForObject(remoteServer + "/deployments", activationReq, JsonNode.class);
@@ -144,12 +144,13 @@ public class ProxyAdapter implements Adapter {
 
       return new Executor() {
         @Override
-        public Object execute(Object input) {
+        public Object execute(Object input, String contentType) {
 
           try {
+            headers.setContentType(MediaType.valueOf(contentType));
             HttpEntity<Object> executionReq = new HttpEntity<>(input, headers);
             Object result =
-                restTemplate.postForObject(remoteEndpoint.toString(), executionReq, JsonNode.class);
+                restTemplate.postForObject(remoteEndpoint.toString(), executionReq, JsonNode.class).get("result");
             return result;
           } catch (HttpClientErrorException e) {
             if (e.getStatusCode().equals(HttpStatus.BAD_REQUEST)) {
