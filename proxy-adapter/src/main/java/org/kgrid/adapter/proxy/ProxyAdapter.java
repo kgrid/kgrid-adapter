@@ -172,10 +172,10 @@ public class ProxyAdapter implements Adapter {
       };
     } catch (HttpClientErrorException e) {
       throw new AdapterException(
-          String.format("Cannot activate object at address %s/deployments", remoteServer), e);
+          String.format("Client error activating object at address %s/deployments: %s", remoteServer, e.getMessage()), e);
     } catch (HttpServerErrorException e) {
       throw new AdapterException(
-          String.format("Remote runtime server: %s is unavailable", remoteServer), e);
+          String.format("Remote runtime %s server error: %s", remoteServer, e.getMessage()), e);
     } catch (MalformedURLException e) {
       throw new AdapterException(
           String.format(
