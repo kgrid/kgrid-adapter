@@ -1,5 +1,6 @@
 package org.kgrid.adapter.proxy;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -171,8 +172,14 @@ public class ProxyAdapter implements Adapter {
         }
       };
     } catch (HttpClientErrorException e) {
+      String errorMessage;
+      try {
+        errorMessage = new ObjectMapper().readTree(e.getResponseBodyAsString()).get("description").asText();
+      } catch (JsonProcessingException jsonProcessingException) {
+        errorMessage = e.getResponseBodyAsString();
+      }
       throw new AdapterException(
-          String.format("Client error activating object at address %s/deployments: %s", remoteServer, e.getMessage()), e);
+          String.format("Client error activating object at address %s/deployments: %s", remoteServer, errorMessage), e);
     } catch (HttpServerErrorException e) {
       throw new AdapterException(
           String.format("Remote runtime %s server error: %s", remoteServer, e.getMessage()), e);

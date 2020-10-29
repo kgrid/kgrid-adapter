@@ -26,6 +26,7 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.UUID;
 
@@ -222,12 +223,12 @@ public class ProxyAdapterTest {
     @Test
     public void testActivateRemoteNonexistentObject() {
         Mockito.when(restTemplate.postForObject(anyString(), any(HttpEntity.class), eq(JsonNode.class)))
-                .thenThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST, ERROR_MESSAGE));
+                .thenThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST, ERROR_MESSAGE, ERROR_MESSAGE.getBytes(), Charset.defaultCharset()));
 
         expected.expect(AdapterException.class);
         expected.expectMessage(
                 String.format("Client error activating object at address %s/deployments: %s",
-                        REMOTE_RUNTIME_URL, "400 " + ERROR_MESSAGE));
+                        REMOTE_RUNTIME_URL, ERROR_MESSAGE));
         expected.expectCause(instanceOf(HttpClientErrorException.class));
 
         proxyAdapter.activate(objectLocation, ENDPOINT_URI, deploymentDesc);
