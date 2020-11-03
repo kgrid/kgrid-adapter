@@ -51,12 +51,7 @@ public class ProxyAdapter implements Adapter {
         String runtimeAddress = runtimeDetails.get("url").asText();
 
         if (runtimes.get(runtimeName) != null) {
-            ObjectNode body = new ObjectMapper().createObjectNode()
-                    .put("Error",
-                            String.format("409 CONFLICT - " +
-                                            "Remote runtime for engine '%s' already registered at address: %s",
-                                    runtimeName, runtimes.get(runtimeName)));
-            return new ResponseEntity<JsonNode>(body, HttpStatus.CONFLICT);
+            log.info("Overwriting remote address for the " + runtimeName + " environment. New address is: " + runtimeAddress);
         } else {
             log.info(
                     "Adding a new remote environment to the registry that can handle "

@@ -202,14 +202,6 @@ public class ProxyAdapterTest {
         assertEquals(Collections.singletonList(NODE_ENGINE), proxyAdapter.getEngines());
     }
 
-    @Test
-    public void throws409ConflictIfIdenticalRuntimeAlreadyRegistered() {
-        ResponseEntity<JsonNode> response = proxyAdapter.registerRemoteRuntime(runtimeDetailNode, mockHttpServletRequest);
-        assertEquals(String.format("409 CONFLICT - " +
-                        "Remote runtime for engine '%s' already registered at address: %s",
-                NODE_ENGINE, REMOTE_RUNTIME_URL), response.getBody().get("Error").asText());
-    }
-
     private void setUpResponseBodies() {
         infoResponseBody = mapper.createObjectNode()
                 .put("Status", "Up")
