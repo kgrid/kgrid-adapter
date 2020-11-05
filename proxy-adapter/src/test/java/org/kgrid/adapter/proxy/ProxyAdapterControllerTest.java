@@ -31,12 +31,12 @@ public class ProxyAdapterControllerTest {
         .willReturn("/proxy/proxy/name/version/src/index.js")
         .willReturn("/proxy/naan/name/version/src/index.js");
 
-    adapter.getCodeArtifact(URI.create(""), req);
+    adapter.getCodeArtifact(req);
 
     then(ctx).should().getBinary(URI.create("proxy/name/version/src/index.js"));
 
     // and also
-    adapter.getCodeArtifact(URI.create(""), req);
+    adapter.getCodeArtifact(req);
 
     then(ctx).should().getBinary(URI.create("naan/name/version/src/index.js"));
   }

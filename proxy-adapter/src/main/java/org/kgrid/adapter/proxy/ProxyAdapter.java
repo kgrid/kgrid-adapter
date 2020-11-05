@@ -47,7 +47,7 @@ public class ProxyAdapter implements Adapter {
     public ResponseEntity<JsonNode> registerRemoteRuntime(
             @RequestBody ObjectNode runtimeDetails, HttpServletRequest req) {
 
-        String runtimeName = runtimeDetails.get("type").asText();
+        String runtimeName = runtimeDetails.get("engine").asText();
         String runtimeAddress = runtimeDetails.get("url").asText();
 
         if (runtimes.get(runtimeName) != null) {
@@ -64,8 +64,8 @@ public class ProxyAdapter implements Adapter {
         log.info("The address of this server is " + shelfAddress);
         runtimes.put(runtimeName, runtimeAddress);
 
-        ObjectNode body = new ObjectMapper().createObjectNode().put("Registered", "success");
-        return new ResponseEntity<JsonNode>(body, HttpStatus.OK);
+        ObjectNode body = runtimeDetails.put("registered", "success");
+        return new ResponseEntity<>(body, HttpStatus.OK);
     }
 
     @GetMapping(value = "/proxy/environments", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -75,25 +75,39 @@ public class ProxyAdapter implements Adapter {
         ArrayNode runtimeList = new ObjectMapper().createArrayNode();
         runtimes.forEach(
                 (runtimeName, runtimeAddress) -> {
-                    ObjectNode runtimeDetails = new ObjectMapper().createObjectNode();
-
-                    runtimeDetails.put("type", runtimeName);
-                    runtimeDetails.put("url", runtimeAddress);
-                    boolean running;
-                    try {
-                        running = isRemoteUp(runtimeName, runtimeAddress);
-                    } catch (Exception e) {
-                        running = false;
-                        runtimeDetails.put("error_details", e.getMessage());
-                    }
-                    runtimeDetails.put("running", running);
+                    ObjectNode runtimeDetails = getEnvDetails(runtimeName, runtimeAddress);
                     runtimeList.add(runtimeDetails);
                 });
         return runtimeList;
     }
 
-    @GetMapping(value = "/proxy/{location}/**")
-    public byte[] getCodeArtifact(@PathVariable URI location, HttpServletRequest request) {
+    @GetMapping(value = "/proxy/environments/{engine}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ObjectNode getRuntimeList(@PathVariable String engine) {
+
+        log.info(String.format("Returning info on the %s engine.", engine));
+
+        String runtimeAddress = runtimes.get(engine);
+        return getEnvDetails(engine, runtimeAddress);
+    }
+
+    private ObjectNode getEnvDetails(String engine, String runtimeAddress) {
+        ObjectNode runtimeDetails = new ObjectMapper().createObjectNode();
+
+        runtimeDetails.put("engine", engine);
+        runtimeDetails.put("url", runtimeAddress);
+        String status;
+        try {
+            status = isRemoteUp(engine, runtimeAddress) ? "up" : "down";
+        } catch (Exception e) {
+            status = "error";
+            runtimeDetails.put("error_details", e.getMessage());
+        }
+        runtimeDetails.put("status", status);
+        return runtimeDetails;
+    }
+
+    @GetMapping(value = "/proxy/**")
+    public byte[] getCodeArtifact(HttpServletRequest request) {
         String requestURI = request.getRequestURI();
         URI path = URI.create(StringUtils.substringAfter(requestURI, "proxy/"));
         return activationContext.getBinary(path);
@@ -126,12 +140,12 @@ public class ProxyAdapter implements Adapter {
             headers.add("Content-Type", "application/json");
             HttpEntity<JsonNode> activationReq = new HttpEntity<>(deploymentSpec, headers);
             JsonNode activationResult =
-                    restTemplate.postForObject(remoteServer + "/deployments", activationReq, JsonNode.class);
+                    restTemplate.postForObject(remoteServer + "/endpoints", activationReq, JsonNode.class);
             URL remoteServerUrl =
                     (null == activationResult.get("baseUrl"))
                             ? new URL(remoteServer)
                             : new URL(activationResult.get("baseUrl").asText());
-            URL remoteEndpoint = new URL(remoteServerUrl, activationResult.get("endpointUrl").asText());
+            URL remoteEndpoint = new URL(remoteServerUrl, activationResult.get("uri").asText());
 
             log.info(
                     "Deployed object with endpoint id "
@@ -211,10 +225,10 @@ public class ProxyAdapter implements Adapter {
             ResponseEntity<JsonNode> resp =
                     restTemplate.getForEntity(remoteServer + "/info", JsonNode.class);
             if (resp.getStatusCode() != HttpStatus.OK
-                    || !resp.getBody().has("Status")
-                    || !"Up".equalsIgnoreCase(resp.getBody().get("Status").asText())) {
+                    || !resp.getBody().has("status")
+                    || !"up".equalsIgnoreCase(resp.getBody().get("status").asText())) {
                 throw new AdapterException(
-                        "Remote execution environment not online, \"Up\" response not received from "
+                        "Remote execution environment not online, \"status\":\"up\" response not received from "
                                 + remoteServer
                                 + "/info");
             }

@@ -103,12 +103,12 @@ public class ProxyAdapterTest {
         runtimeDetailNode = (ObjectNode)
                 new ObjectMapper()
                         .readTree(
-                                "{\"type\":\"" + NODE_ENGINE + "\", \"url\":\"" + REMOTE_RUNTIME_URL + "\"}");
+                                "{\"engine\":\"" + NODE_ENGINE + "\", \"url\":\"" + REMOTE_RUNTIME_URL + "\"}");
         proxyAdapter.registerRemoteRuntime(runtimeDetailNode, mockHttpServletRequest);
 
         Mockito.when(
                 restTemplate.postForObject(
-                        REMOTE_RUNTIME_URL + "/deployments",
+                        REMOTE_RUNTIME_URL + "/endpoints",
                         new HttpEntity<>(activationRequestBody, headers),
                         JsonNode.class))
                 .thenReturn(activationResponseBody);
@@ -204,7 +204,7 @@ public class ProxyAdapterTest {
 
     private void setUpResponseBodies() {
         infoResponseBody = mapper.createObjectNode()
-                .put("Status", "Up")
+                .put("status", "up")
                 .put("url", REMOTE_RUNTIME_URL);
         deploymentDesc
                 .put("engine", NODE_ENGINE)
@@ -229,7 +229,7 @@ public class ProxyAdapterTest {
                 .put("uri", ENDPOINT_URI.toString());
         activationResponseBody
                 .put("baseUrl", PROXY_SHELF_URL)
-                .put("endpointUrl", REMOTE_URL_HASH)
+                .put("uri", REMOTE_URL_HASH)
                 .put("activated", "Tue Feb 18 2020 16:44:15 GMT-0500 (Eastern Standard Time)");
         executionResponseBody
                 .put("result", "Welcome to Knowledge Grid, test");
