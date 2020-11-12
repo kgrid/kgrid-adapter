@@ -112,7 +112,7 @@ This accepts an object that contains the inputs to be used when executing the ob
 object in the node environment takes a json object in the following format:
 ```json
 {
-  "name": "Tom"
+    "name": "Tom"
 }
 ```
 
