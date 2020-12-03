@@ -9,6 +9,7 @@ Adapters provide a common interface to load & execute code in the Knowledge Grid
 1. [Build and Test Adapters](#build-adpaters)
 1. [Javascript V8 Adapter](#javascript-v8-adapter)
 1. [Javascript Nashorn Adapter](#javascript-nashorn-adapter)
+1. [Resource Adapter](#resource-adapter)
 1. [Proxy Adapter](#proxy-adapter)
 1. [Additional Information](#additional-information)
 
@@ -47,11 +48,10 @@ external dependencies should be bundled into one file. (See the guide on creatin
 
 Example deployment descriptor:
 ```yaml
-endpoints:
   /welcome:
     artifact:
       - 'src/welcome.js'
-    adapter: 'V8'
+    engine: 'javascript'
     function: 'welcome'
 ```
 ### Pitfalls and current limitations
@@ -75,15 +75,18 @@ you wish to pass to it. **Note that the input can only be a primitive(booleans, 
 to convert objects to strings before passing them between methods and `JSON.parse` to convert the JSON back into a string in the receiving object.
 See [issue 631](https://github.com/oracle/graal/issues/631) for the graal project for updates.
 
+**It is important to note, that there can be only one adapter of a particular engine supplied to the activator,
+so the V8 Graal Adapter and the Javascript Nashorn Adapter cannot be used simultaneously.
+
+See the [Javascript V8 Adapter](https://github.com/kgrid/javascript-v8-adapter) Readme for more information.
 ## Javascript Nashorn Adapter
 The nashorn engine used by this adapter is being removed and use of this adapter is discouraged. Instead use either the js v8 adapter or the proxy adapter.
 
 Example deployment descriptor:
 ```yaml
-endpoints:
   /welcome:
     artifact: 'src/welcome.js'
-    adapter: 'JAVASCRIPT'
+    engine: 'javascript'
     function: 'welcome'
 ```
 
@@ -92,6 +95,8 @@ endpoints:
 The nashorn adapter transforms javascript arrays to a map with the key for each value set to the value's index in the 
 array when it returns the value. Because of this using javascript arrays is discouraged.
 
+**It is important to note, that there can be only one adapter of a particular engine supplied to the activator,
+so the V8 Graal Adapter and the Javascript Nashorn Adapter cannot be used simultaneously.
 ## Proxy Adapter
 The proxy adapter exposes endpoints which can be to register external runtime environments and make them accessible to execute object paylods.
 
@@ -99,11 +104,10 @@ There is a [node external runtime](https://github.com/kgrid/kgrid-node-runtime) 
 To run objects in the remove environment download, install and run that project after starting the activator. 
 Note that the deployment descriptor of a proxy adapter object contains two more fields than a local javascript object:
 ```yaml
-endpoints:
-  /welcome:
+/welcome:
+  post:
     artifact:
       - 'src/welcome.js'
-    adapter: 'PROXY'
     engine: 'node'
     entry: 'src/welcome.js'
     function: 'welcome'
@@ -114,6 +118,31 @@ The proxy adapter can run any NodeJS project that you can run locally.
 
 More external runtimes are planned such as a native python environment.
 
+See the [Proxy Adapter Readme](https://github.com/kgrid/kgrid-adapter/tree/main/proxy-adapter) for more information.
+## Resource Adapter
+The nashorn engine used by this adapter is being removed and use of this adapter is discouraged. Instead use either the js v8 adapter or the proxy adapter.
+
+Example deployment descriptor:
+```yaml
+/welcome:
+  get:
+    artifact: 'src/welcome.js'
+    engine: 'resource'
+```
+
+### Pitfalls and current limitations
+- The endpoints that the activator exposes to work with this adapter are:
+ 
+  `
+  GET <activator url>/resource/<naan>/<name>/<api version>/<endpoint>
+  `
+
+    and
+
+    `
+    GET <activator url>/resource/<naan>/<name>/<api version>/<endpoint>/<filename>
+    `
+    See the [Resource Adapter Readme](https://github.com/kgrid/resource-adapter) for more information.
 ## Additional Information
 
 ### Adding a new Adapter
@@ -125,10 +154,3 @@ resources
      services
         org.kgrid.adapter
 ```
-File contents:
-`org.kgrid.adapter.v8.JsV8Adapter`
-
-### Proposed adapters
-
-We are expanding the functionality of the new graal-based javascript v8 adapter and hope to move on to other graalvm-supported languages.
-The resource adapter is still under development and not included in the current activator.
