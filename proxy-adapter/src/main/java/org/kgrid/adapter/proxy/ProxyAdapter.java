@@ -32,8 +32,7 @@ import java.util.Map;
 @CrossOrigin
 @RestController
 public class ProxyAdapter implements Adapter {
-
-    static Map<String, String> runtimes = new HashMap<>();
+    static Map<String, RuntimeDetails> runtimes = new HashMap<>();
     static String shelfAddress;
     static ActivationContext activationContext;
     private Logger log = LoggerFactory.getLogger(getClass());
@@ -47,22 +46,23 @@ public class ProxyAdapter implements Adapter {
     public ResponseEntity<JsonNode> registerRemoteRuntime(
             @RequestBody ObjectNode runtimeDetails, HttpServletRequest req) {
 
-        String runtimeName = runtimeDetails.get("engine").asText();
-        String runtimeAddress = runtimeDetails.get("url").asText();
+        String runtimeEngine = runtimeDetails.at("/engine").asText();
+        String runtimeAddress = runtimeDetails.at("/url").asText();
+        String runtimeVersion = runtimeDetails.at("/version").asText();
 
-        if (runtimes.get(runtimeName) != null) {
-            log.info("Overwriting remote address for the " + runtimeName + " environment. New address is: " + runtimeAddress);
+        if (runtimes.get(runtimeEngine) != null) {
+            log.info("Overwriting remote address for the " + runtimeEngine + " environment. New address is: " + runtimeAddress);
         } else {
             log.info(
                     "Adding a new remote environment to the registry that can handle "
-                            + runtimeName
+                            + runtimeEngine
                             + " and is located at "
                             + runtimeAddress);
         }
         String thisURL = req.getRequestURL().toString();
         shelfAddress = StringUtils.substringBefore(thisURL, "/proxy/environments");
         log.info("The address of this server is " + shelfAddress);
-        runtimes.put(runtimeName, runtimeAddress);
+        runtimes.put(runtimeEngine, new RuntimeDetails(runtimeEngine, runtimeVersion, runtimeAddress));
 
         ObjectNode body = runtimeDetails.put("registered", "success");
         return new ResponseEntity<>(body, HttpStatus.OK);
@@ -74,10 +74,7 @@ public class ProxyAdapter implements Adapter {
         log.info("Returning list of all available runtimes.");
         ArrayNode runtimeList = new ObjectMapper().createArrayNode();
         runtimes.forEach(
-                (runtimeName, runtimeAddress) -> {
-                    ObjectNode runtimeDetails = getEnvDetails(runtimeName, runtimeAddress);
-                    runtimeList.add(runtimeDetails);
-                });
+                (runtimeName, runtimeDetails) -> runtimeList.add(getEnvDetails(runtimeDetails)));
         return runtimeList;
     }
 
@@ -86,18 +83,18 @@ public class ProxyAdapter implements Adapter {
 
         log.info(String.format("Returning info on the %s engine.", engine));
 
-        String runtimeAddress = runtimes.get(engine);
-        return getEnvDetails(engine, runtimeAddress);
+        return getEnvDetails(runtimes.get(engine));
     }
 
-    private ObjectNode getEnvDetails(String engine, String runtimeAddress) {
+    private ObjectNode getEnvDetails(RuntimeDetails details) {
         ObjectNode runtimeDetails = new ObjectMapper().createObjectNode();
 
-        runtimeDetails.put("engine", engine);
-        runtimeDetails.put("url", runtimeAddress);
+        runtimeDetails.put("engine", details.getEngine());
+        runtimeDetails.put("version", details.getVersion());
+        runtimeDetails.put("url", details.getAddress());
         String status;
         try {
-            status = isRemoteUp(engine, runtimeAddress) ? "up" : "down";
+            status = isRemoteUp(details.getEngine(), details.getAddress()) ? "up" : "down";
         } catch (Exception e) {
             status = "error";
             runtimeDetails.put("error_details", e.getMessage());
@@ -126,7 +123,7 @@ public class ProxyAdapter implements Adapter {
     @Override
     public Executor activate(URI absoluteLocation, URI endpointURI, JsonNode deploymentSpec) {
         String engine = deploymentSpec.at("/engine").asText();
-        String remoteServer = runtimes.get(engine);
+        String remoteServer = runtimes.get(engine).getAddress();
         isRemoteUp(engine, remoteServer);
 
         try {
@@ -245,4 +242,9 @@ public class ProxyAdapter implements Adapter {
         }
         return true;
     }
+
+    public static Map<String, Object> getRuntimes() {
+        return new HashMap<>(runtimes);
+    }
+
 }

@@ -45,6 +45,7 @@ public class ProxyAdapterTest {
     private static final String REMOTE_URL_HASH = "remote-hash";
     private static final String TYPE_JSON = "application/json";
     public static final String NODE_ENGINE = "node";
+    public static final String NODE_VERSION = "1.0";
     private String ERROR_MESSAGE = "Kaboom, baby";
     private final URI objectLocation = URI.create(NAAN + "-" + NAME + "-" + API_VERSION);
 
@@ -103,7 +104,7 @@ public class ProxyAdapterTest {
         runtimeDetailNode = (ObjectNode)
                 new ObjectMapper()
                         .readTree(
-                                "{\"engine\":\"" + NODE_ENGINE + "\", \"url\":\"" + REMOTE_RUNTIME_URL + "\"}");
+                                "{\"engine\":\"" + NODE_ENGINE + "\", \"version\":\"" + NODE_VERSION + "\", \"url\":\"" + REMOTE_RUNTIME_URL + "\"}");
         proxyAdapter.registerRemoteRuntime(runtimeDetailNode, mockHttpServletRequest);
 
         Mockito.when(
