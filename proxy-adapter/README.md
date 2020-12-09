@@ -87,6 +87,8 @@ The remote environment must have an info endpoint which returns a json object wi
 ### Post `/endpoints`
 This accepts the body of a deployment specification with added base url, and uri.
 The remote runtime should use the base url and artifact list to retrieve the required resources from the proxy adapter.
+Also, if the Knowledge Object was packaged with the Kgrid CLI, it will be
+available for the remote runtimes to use in their Cache Strategy.
 ```json
 {
     "baseUrl":"http://localhost:8080/proxy/node/simple/v1.0/",
@@ -94,7 +96,8 @@ The remote runtime should use the base url and artifact list to retrieve the req
     "artifact":["src/welcome.js"],
     "engine":"node",
     "entry":"src/welcome.js",
-    "function":"welcome"
+    "function":"welcome",
+    "checksum": "123ac3b3d5e8f2"
 }
 ```
 This should return json containing url that the proxy adapter can then call with execution requests in this format:
