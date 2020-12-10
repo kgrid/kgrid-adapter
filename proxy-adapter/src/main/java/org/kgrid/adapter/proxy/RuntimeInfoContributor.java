@@ -9,8 +9,6 @@ public class RuntimeInfoContributor implements InfoContributor {
 
   @Override
   public void contribute(Info.Builder builder) {
-    if (ProxyAdapter.getRuntimes().size() > 0) {
       builder.withDetail("runtimes", ProxyAdapter.getRuntimes());
-    }
   }
 }
