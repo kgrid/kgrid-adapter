@@ -8,6 +8,7 @@ import org.kgrid.adapter.api.AdapterException;
 import org.kgrid.adapter.api.Executor;
 
 import javax.script.*;
+import java.io.*;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.Collections;
@@ -94,7 +95,7 @@ public class JavascriptAdapter implements Adapter {
   }
 
   private CompiledScript getCompiledScript(URI artifact, String entry) {
-    byte[] binary;
+    InputStream binary;
     try {
       binary = activationContext.getBinary(artifact);
     } catch (Exception e) {
@@ -105,9 +106,14 @@ public class JavascriptAdapter implements Adapter {
           String.format("Can't find endpoint %s in path %s", entry, artifact));
     }
     CompiledScript script;
-    try {
-      script = ((Compilable) engine).compile(new String(binary, Charset.defaultCharset()));
-    } catch (ScriptException e) {
+    try (Reader reader = new BufferedReader(new InputStreamReader(binary, Charset.defaultCharset()))) {
+      StringBuilder codeText = new StringBuilder();
+      int c;
+      while ((c = reader.read()) != -1){
+        codeText.append((char) c);
+      }
+      script = ((Compilable) engine).compile(codeText.toString());
+    } catch (IOException | ScriptException e) {
       throw new AdapterException(
           "unable to compile script " + artifact + " : " + e.getMessage(), e);
     }

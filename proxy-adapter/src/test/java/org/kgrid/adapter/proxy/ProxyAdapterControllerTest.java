@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 
+import java.io.ByteArrayInputStream;
 import java.net.URI;
 import javax.servlet.http.HttpServletRequest;
 import org.junit.Test;
@@ -26,7 +27,7 @@ public class ProxyAdapterControllerTest {
     adapter.initialize(ctx);
 
     // and
-    given(ctx.getBinary(any(URI.class))).willReturn("Hi, Bob".getBytes());
+    given(ctx.getBinary(any(URI.class))).willReturn(new ByteArrayInputStream("Hi, Bob".getBytes()));
     given(req.getRequestURI())
         .willReturn("/proxy/proxy/name/version/src/index.js")
         .willReturn("/proxy/naan/name/version/src/index.js");

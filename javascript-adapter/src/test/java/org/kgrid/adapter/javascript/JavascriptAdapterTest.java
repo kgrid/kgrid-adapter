@@ -13,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.io.ByteArrayInputStream;
 import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
@@ -58,7 +59,7 @@ public class JavascriptAdapterTest {
   @Before
   public void setUp() {
 
-    when(context.getBinary(any())).thenReturn(HELLO_CODE.getBytes());
+    when(context.getBinary(any())).thenReturn(new ByteArrayInputStream(HELLO_CODE.getBytes()));
     adapter.initialize(context);
     deploymentSpec = new ObjectMapper().createObjectNode();
     deploymentSpec
@@ -136,7 +137,7 @@ public class JavascriptAdapterTest {
 
   @Test
   public void activate_ThrowstErrorWhenScriptDoesntCompile() {
-    when(context.getBinary(any())).thenReturn("function welcome(){{{{".getBytes());
+    when(context.getBinary(any())).thenReturn(new ByteArrayInputStream("function welcome(){{{{".getBytes()));
     assertThrows(AdapterException.class, ()-> adapter.activate(OBJECT_LOCATION, ENDPOINT_URI, deploymentSpec));
   }
 
