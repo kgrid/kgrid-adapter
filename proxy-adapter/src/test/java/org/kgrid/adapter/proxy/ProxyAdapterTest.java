@@ -34,8 +34,8 @@ import static org.mockito.ArgumentMatchers.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ProxyAdapterTest {
-    private static final String REMOTE_RUNTIME_URL = "http://url-from-info-response.com";
-    private static final String PROXY_SHELF_URL = "http://url-from-activation-response.com";
+    private static final String REMOTE_RUNTIME_URL = "http://remote-runtime.com";
+    private static final String PROXY_SHELF_URL = "http://proxy-adapter.com";
     private static final String NAAN = "hello";
     private static final String NAME = "proxy";
     private static final String API_VERSION = "v1.0";

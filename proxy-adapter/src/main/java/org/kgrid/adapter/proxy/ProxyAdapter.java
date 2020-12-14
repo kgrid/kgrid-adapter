@@ -103,11 +103,11 @@ public class ProxyAdapter implements Adapter {
     @Override
     public Executor activate(URI absoluteLocation, URI endpointURI, JsonNode deploymentSpec) {
         String engine = deploymentSpec.at("/engine").asText();
-        String remoteServer = runtimes.get(engine).at("/url").asText();
         if (!isRemoteUp(engine)) {
             throw new AdapterException(String.format("Remote runtime %s is not online. Runtime status: %s",
                     engine, runtimes.get(engine).get("status").asText()));
         }
+        String remoteServer = runtimes.get(engine).at("/url").asText();
 
         try {
             String proxyEndpoint = "proxy";
@@ -192,38 +192,32 @@ public class ProxyAdapter implements Adapter {
         }
     }
 
-    public static ArrayNode getRuntimes() {
+    public ArrayNode getRuntimes() {
         ArrayNode runtimeList = new ObjectMapper().createArrayNode();
         runtimes.forEach(
                 (engine, runtimeDetails) -> {
-                    try {
-                        JsonNode statusBody = new RestTemplate().getForEntity(runtimeDetails.at("/url").asText() + "/info", JsonNode.class).getBody();
-                        if (statusBody != null && statusBody.has("status")) {
-                            runtimeDetails.put("status", statusBody.get("status").asText());
-                        } else {
-                            runtimeDetails.put("status", "Runtime does not report status");
-                        }
-                    } catch (Exception e) {
-                        runtimeDetails.put("status", "Activator could not connect");
-                    } finally {
-                        runtimeList.add(runtimeDetails);
-                    }
+                    runtimeList.add(updateRuntimeInfo(runtimeDetails));
                 });
         return runtimeList;
     }
 
     private boolean isRemoteUp(String engine) {
         ObjectNode runtimeDetails = runtimes.get(engine);
+        runtimes.put(engine, updateRuntimeInfo(runtimeDetails));
+        return runtimes.get(engine).get("status").asText().toLowerCase().equals("up");
+    }
+
+    private ObjectNode updateRuntimeInfo(ObjectNode runtimeDetails) {
         try {
-            JsonNode statusBody = restTemplate.getForEntity(runtimeDetails.at("/url").asText() + "/info", JsonNode.class).getBody();
-            if (statusBody != null && statusBody.has("status")) {
-                runtimeDetails.put("status", statusBody.get("status").asText());
+            ResponseEntity<JsonNode> response = restTemplate.getForEntity(runtimeDetails.at("/url").asText() + "/info", JsonNode.class);
+            if (response.getStatusCode().is2xxSuccessful()) {
+                runtimeDetails = (ObjectNode) response.getBody();
             } else {
-                runtimeDetails.put("status", "Runtime does not report status");
+                runtimeDetails.put("status","Error while retrieving runtime status: " + response.getStatusCodeValue());
             }
         } catch (Exception e) {
-            runtimeDetails.put("status", "Activator could not connect");
+            runtimeDetails.put("status", "Activator could not connect to runtime");
         }
-        return runtimes.get(engine).get("status").asText().toLowerCase().equals("up");
+        return runtimeDetails;
     }
 }
