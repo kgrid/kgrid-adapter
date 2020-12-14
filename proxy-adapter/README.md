@@ -42,19 +42,26 @@ Returns an individual runtime environment registered with the proxy adapter:
 ```
 
 ### Post `/proxy/environments`
-To register a remote runtime with the proxy adapter POST to the `/proxy/environments` endpoint with the following json data:
+To register a remote runtime with the proxy adapter POST to the `/proxy/environments` endpoint with at least the following json data:
 ```json
 {
     "engine": "node",
     "url": "http://localhost:3000"
 }
 ```
-This will return a 200 ok response with a body:
+This will return a 200 ok response with a body reflecting what the runtime sent in:
+```json
+{
+    "engine": "node",
+    "url": "http://localhost:3000"
+}
+```
+You can also add any additional information that you'd like to show up in the activator's info endpoint. For example, the runtime version is recommended:
 ```json
 {
     "engine": "node",
     "url": "http://localhost:3000",
-    "registered": "success"
+    "version":"1.2.3"
 }
 ```
 
