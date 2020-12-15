@@ -24,18 +24,15 @@ import javax.servlet.http.HttpServletRequest;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @CrossOrigin
 @RestController
 public class ProxyAdapter implements Adapter {
-    static Map<String, RuntimeDetails> runtimes = new HashMap<>();
+    static Map<String, ObjectNode> runtimes = new HashMap<>();
     static String shelfAddress;
     static ActivationContext activationContext;
-    private Logger log = LoggerFactory.getLogger(getClass());
+    private final Logger log = LoggerFactory.getLogger(getClass());
     @Autowired
     private RestTemplate restTemplate;
 
@@ -46,11 +43,20 @@ public class ProxyAdapter implements Adapter {
     public ResponseEntity<JsonNode> registerRemoteRuntime(
             @RequestBody ObjectNode runtimeDetails, HttpServletRequest req) {
 
-        String runtimeEngine = runtimeDetails.at("/engine").asText();
-        String runtimeAddress = runtimeDetails.at("/url").asText();
-        String runtimeVersion = runtimeDetails.at("/version").asText();
+        JsonNode runtimeEngine = runtimeDetails.at("/engine");
+        JsonNode runtimeAddress = runtimeDetails.at("/url");
 
-        if (runtimes.get(runtimeEngine) != null) {
+        if (runtimeEngine.isMissingNode() || runtimeEngine.asText().equals("")) {
+            runtimeDetails.put("status", "Not registered: Runtime failed to specify engine");
+            runtimes.put(runtimeEngine.asText(), runtimeDetails);
+            return new ResponseEntity<>(runtimeDetails, HttpStatus.BAD_REQUEST);
+        }
+        if (runtimeAddress.isMissingNode() || runtimeAddress.asText().equals("")) {
+            runtimeDetails.put("status", "Not registered: Runtime failed to specify its url");
+            runtimes.put(runtimeEngine.asText(), runtimeDetails);
+            return new ResponseEntity<>(runtimeDetails, HttpStatus.BAD_REQUEST);
+        }
+        if (runtimes.get(runtimeEngine.asText()) != null) {
             log.info("Overwriting remote address for the " + runtimeEngine + " environment. New address is: " + runtimeAddress);
         } else {
             log.info(
@@ -59,48 +65,22 @@ public class ProxyAdapter implements Adapter {
                             + " and is located at "
                             + runtimeAddress);
         }
+        runtimes.put(runtimeEngine.asText(), runtimeDetails);
         String thisURL = req.getRequestURL().toString();
         shelfAddress = StringUtils.substringBefore(thisURL, "/proxy/environments");
-        log.info("The address of this server is " + shelfAddress);
-        runtimes.put(runtimeEngine, new RuntimeDetails(runtimeEngine, runtimeVersion, runtimeAddress));
-
-        ObjectNode body = runtimeDetails.put("registered", "success");
-        return new ResponseEntity<>(body, HttpStatus.OK);
+        return new ResponseEntity<>(runtimeDetails, HttpStatus.OK);
     }
 
     @GetMapping(value = "/proxy/environments", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ArrayNode getRuntimeList() {
-
+    public ArrayNode getRuntimeDetails() {
         log.info("Returning list of all available runtimes.");
-        ArrayNode runtimeList = new ObjectMapper().createArrayNode();
-        runtimes.forEach(
-                (runtimeName, runtimeDetails) -> runtimeList.add(getEnvDetails(runtimeDetails)));
-        return runtimeList;
+        return getRuntimes();
     }
 
     @GetMapping(value = "/proxy/environments/{engine}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ObjectNode getRuntimeList(@PathVariable String engine) {
-
+    public ObjectNode getRuntimeDetails(@PathVariable String engine) {
         log.info(String.format("Returning info on the %s engine.", engine));
-
-        return getEnvDetails(runtimes.get(engine));
-    }
-
-    private ObjectNode getEnvDetails(RuntimeDetails details) {
-        ObjectNode runtimeDetails = new ObjectMapper().createObjectNode();
-
-        runtimeDetails.put("engine", details.getEngine());
-        runtimeDetails.put("version", details.getVersion());
-        runtimeDetails.put("url", details.getAddress());
-        String status;
-        try {
-            status = isRemoteUp(details.getEngine(), details.getAddress()) ? "up" : "down";
-        } catch (Exception e) {
-            status = "error";
-            runtimeDetails.put("error_details", e.getMessage());
-        }
-        runtimeDetails.put("status", status);
-        return runtimeDetails;
+        return runtimes.get(engine);
     }
 
     @GetMapping(value = "/proxy/**")
@@ -112,7 +92,7 @@ public class ProxyAdapter implements Adapter {
 
     @Override
     public List<String> getEngines() {
-        return new ArrayList(runtimes.keySet());
+        return new ArrayList<>(runtimes.keySet());
     }
 
     @Override
@@ -123,8 +103,11 @@ public class ProxyAdapter implements Adapter {
     @Override
     public Executor activate(URI absoluteLocation, URI endpointURI, JsonNode deploymentSpec) {
         String engine = deploymentSpec.at("/engine").asText();
-        String remoteServer = runtimes.get(engine).getAddress();
-        isRemoteUp(engine, remoteServer);
+        if (!isRemoteUp(engine)) {
+            throw new AdapterException(String.format("Remote runtime %s is not online. Runtime status: %s",
+                    engine, runtimes.get(engine).get("status").asText()));
+        }
+        String remoteServer = runtimes.get(engine).at("/url").asText();
 
         try {
             String proxyEndpoint = "proxy";
@@ -160,9 +143,7 @@ public class ProxyAdapter implements Adapter {
                     try {
                         headers.setContentType(MediaType.valueOf(contentType));
                         HttpEntity<Object> executionReq = new HttpEntity<>(input, headers);
-                        Object result =
-                                restTemplate.postForObject(remoteEndpoint.toString(), executionReq, JsonNode.class).get("result");
-                        return result;
+                        return restTemplate.postForObject(remoteEndpoint.toString(), executionReq, JsonNode.class).get("result");
                     } catch (HttpClientErrorException e) {
                         if (e.getStatusCode().equals(HttpStatus.BAD_REQUEST)) {
                             throw new AdapterException(
@@ -205,46 +186,38 @@ public class ProxyAdapter implements Adapter {
     @Override
     public String status() {
         if (activationContext != null) {
-            return "UP";
+            return "up";
         } else {
-            return "DOWN";
+            return "down";
         }
     }
 
-    private boolean isRemoteUp(String engine, String remoteServer) {
-        if (remoteServer == null || "".equals(remoteServer)) {
-            throw new AdapterException(
-                    "Remote server address not set, check that the remote environment for "
-                            + engine
-                            + " has been set up.");
-        }
+    public ArrayNode getRuntimes() {
+        ArrayNode runtimeList = new ObjectMapper().createArrayNode();
+        runtimes.forEach(
+                (engine, runtimeDetails) -> {
+                    runtimeList.add(updateRuntimeInfo(runtimeDetails));
+                });
+        return runtimeList;
+    }
+
+    private boolean isRemoteUp(String engine) {
+        ObjectNode runtimeDetails = runtimes.get(engine);
+        runtimes.put(engine, updateRuntimeInfo(runtimeDetails));
+        return runtimes.get(engine).get("status").asText().toLowerCase().equals("up");
+    }
+
+    private ObjectNode updateRuntimeInfo(ObjectNode runtimeDetails) {
         try {
-            ResponseEntity<JsonNode> resp =
-                    restTemplate.getForEntity(remoteServer + "/info", JsonNode.class);
-            if (resp.getStatusCode() != HttpStatus.OK
-                    || !resp.getBody().has("status")
-                    || !"up".equalsIgnoreCase(resp.getBody().get("status").asText())) {
-                throw new AdapterException(
-                        "Remote execution environment not online, \"status\":\"up\" response not received from "
-                                + remoteServer
-                                + "/info");
+            ResponseEntity<JsonNode> response = restTemplate.getForEntity(runtimeDetails.at("/url").asText() + "/info", JsonNode.class);
+            if (response.getStatusCode().is2xxSuccessful()) {
+                runtimeDetails = (ObjectNode) response.getBody();
+            } else {
+                runtimeDetails.put("status", "Error while retrieving runtime status: " + response.getStatusCodeValue());
             }
-
-        } catch (HttpClientErrorException | ResourceAccessException | IllegalArgumentException e) {
-            throw new AdapterException(
-                    "Remote execution environment not online, could not resolve remote server address, "
-                            + "check that address is correct and server for environment "
-                            + engine
-                            + " is running at "
-                            + remoteServer
-                            + " Root error "
-                            + e.getMessage());
+        } catch (Exception e) {
+            runtimeDetails.put("status", "Activator could not connect to runtime");
         }
-        return true;
+        return runtimeDetails;
     }
-
-    public static Map<String, Object> getRuntimes() {
-        return new HashMap<>(runtimes);
-    }
-
 }
