@@ -186,9 +186,9 @@ public class ProxyAdapter implements Adapter {
     @Override
     public String status() {
         if (activationContext != null) {
-            return "UP";
+            return "up";
         } else {
-            return "DOWN";
+            return "down";
         }
     }
 
@@ -213,7 +213,7 @@ public class ProxyAdapter implements Adapter {
             if (response.getStatusCode().is2xxSuccessful()) {
                 runtimeDetails = (ObjectNode) response.getBody();
             } else {
-                runtimeDetails.put("status","Error while retrieving runtime status: " + response.getStatusCodeValue());
+                runtimeDetails.put("status", "Error while retrieving runtime status: " + response.getStatusCodeValue());
             }
         } catch (Exception e) {
             runtimeDetails.put("status", "Activator could not connect to runtime");
