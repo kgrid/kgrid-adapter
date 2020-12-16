@@ -13,6 +13,7 @@ import org.kgrid.adapter.api.Executor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
@@ -21,6 +22,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
@@ -84,10 +86,10 @@ public class ProxyAdapter implements Adapter {
     }
 
     @GetMapping(value = "/proxy/**")
-    public byte[] getCodeArtifact(HttpServletRequest request) {
+    public InputStreamResource getCodeArtifact(HttpServletRequest request) {
         String requestURI = request.getRequestURI();
         URI path = URI.create(StringUtils.substringAfter(requestURI, "proxy/"));
-        return activationContext.getBinary(path);
+        return new InputStreamResource(activationContext.getBinary(path));
     }
 
     @Override

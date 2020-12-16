@@ -23,6 +23,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.Collections;
@@ -84,10 +85,10 @@ public class ProxyAdapterTest {
                     }
 
                     @Override
-                    public byte[] getBinary(URI pathToBinary) {
-                        byte[] code;
+                    public InputStream getBinary(URI pathToBinary) {
+                        InputStream code;
                         try {
-                            code = helloWorldCode.getInputStream().readAllBytes();
+                            code = helloWorldCode.getInputStream();
                         } catch (Exception e) {
                             throw new AdapterException(e.getMessage(), e);
                         }
@@ -143,8 +144,8 @@ public class ProxyAdapterTest {
                         }
 
                         @Override
-                        public byte[] getBinary(URI pathToBinary) {
-                            return new byte[0];
+                        public InputStream getBinary(URI pathToBinary) {
+                            return null;
                         }
 
                         @Override
