@@ -107,7 +107,7 @@ public class ProxyAdapter implements Adapter {
         String engine = deploymentSpec.at("/engine").asText();
         if (!isRemoteUp(engine)) {
             throw new AdapterException(String.format("Remote runtime %s is not online. Runtime status: %s",
-                    engine, runtimes.get(engine).get("status").asText()));
+                    engine, runtimes.get(engine).get("status").asText()), HttpStatus.SERVICE_UNAVAILABLE);
         }
         String remoteServer = runtimes.get(engine).at("/url").asText();
 
@@ -149,18 +149,18 @@ public class ProxyAdapter implements Adapter {
                     } catch (HttpClientErrorException e) {
                         if (e.getStatusCode().equals(HttpStatus.BAD_REQUEST)) {
                             throw new AdapterException(
-                                    "Runtime error when executing object. Check code and inputs.");
+                                    "Runtime error when executing object. Check code and inputs.", HttpStatus.BAD_REQUEST);
                         } else {
                             throw new AdapterException(
                                     "Cannot access object payload in remote environment. "
                                             + "Cannot connect to url "
-                                            + remoteEndpoint.toString());
+                                            + remoteEndpoint.toString(), HttpStatus.SERVICE_UNAVAILABLE);
                         }
                     } catch (ResourceAccessException e) {
                         throw new AdapterException(
                                 "Cannot access object payload in remote environment. "
                                         + "Cannot connect to url "
-                                        + remoteEndpoint.toString());
+                                        + remoteEndpoint.toString(), HttpStatus.SERVICE_UNAVAILABLE);
                     }
                 }
             };
@@ -172,16 +172,17 @@ public class ProxyAdapter implements Adapter {
                 errorMessage = e.getResponseBodyAsString();
             }
             throw new AdapterException(
-                    String.format("Client error activating object at address %s/deployments: %s", remoteServer, errorMessage), e);
+                    String.format("Client error activating object at address %s/deployments: %s", remoteServer,
+                            errorMessage), e, HttpStatus.BAD_REQUEST);
         } catch (HttpServerErrorException e) {
             throw new AdapterException(
-                    String.format("Remote runtime %s server error: %s", remoteServer, e.getMessage()), e);
+                    String.format("Remote runtime %s server error: %s", remoteServer, e.getMessage()), e,
+                    HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (MalformedURLException e) {
             throw new AdapterException(
                     String.format(
                             "Invalid URL returned when activating object at address %s/deployments",
-                            remoteServer),
-                    e);
+                            remoteServer), e, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
