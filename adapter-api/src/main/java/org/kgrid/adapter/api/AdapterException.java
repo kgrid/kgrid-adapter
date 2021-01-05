@@ -4,15 +4,11 @@ import org.springframework.http.HttpStatus;
 
 public class AdapterException extends RuntimeException {
 
-  private HttpStatus status;
-
-  public AdapterException(String message, Throwable cause, HttpStatus status) {
+  public AdapterException(String message, Throwable cause) {
     super(message, cause);
-    this.status = status;
   }
 
-  public AdapterException(String message, HttpStatus status) {
+  public AdapterException(String message) {
     super(message);
-    this.status = status;
   }
 }

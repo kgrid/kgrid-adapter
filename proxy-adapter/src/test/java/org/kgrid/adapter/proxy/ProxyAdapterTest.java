@@ -90,7 +90,7 @@ public class ProxyAdapterTest {
                         try {
                             code = helloWorldCode.getInputStream();
                         } catch (Exception e) {
-                            throw new AdapterException(e.getMessage(), e, HttpStatus.I_AM_A_TEAPOT);
+                            throw new AdapterException(e.getMessage(), e);
                         }
                         return code;
                     }
