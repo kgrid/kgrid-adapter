@@ -1,11 +1,10 @@
 package org.kgrid.adapter.proxy;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import java.net.MalformedURLException;
+
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -13,11 +12,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
+
 import org.apache.commons.lang3.StringUtils;
-import org.kgrid.adapter.api.ActivationContext;
-import org.kgrid.adapter.api.Adapter;
-import org.kgrid.adapter.api.AdapterException;
-import org.kgrid.adapter.api.Executor;
+import org.kgrid.adapter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,14 +32,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 @CrossOrigin
 @RestController
 public class ProxyAdapter implements Adapter {
     static Map<String, ObjectNode> runtimes = new HashMap<>();
-    static String shelfAddress;
+    static String activatorBaseUrl;
     static ActivationContext activationContext;
     private final Logger log = LoggerFactory.getLogger(getClass());
     @Autowired
@@ -79,7 +75,7 @@ public class ProxyAdapter implements Adapter {
         }
         runtimes.put(runtimeEngine.asText(), runtimeDetails);
         String thisURL = req.getRequestURL().toString();
-        shelfAddress = StringUtils.substringBefore(thisURL, "/proxy/environments");
+        activatorBaseUrl = StringUtils.substringBefore(thisURL, "/proxy/environments");
         return new ResponseEntity<>(runtimeDetails, HttpStatus.OK);
     }
 
@@ -116,18 +112,17 @@ public class ProxyAdapter implements Adapter {
     public Executor activate(URI absoluteLocation, URI endpointURI, JsonNode deploymentSpec) {
         String engine = deploymentSpec.at("/engine").asText();
         if (!isRemoteUp(engine)) {
-            throw new AdapterException(
-                String.format("Remote runtime %s is not online. Runtime status: %s. Detail: %s",
-                    engine,
-                    runtimes.get(engine).get("status").asText(),
-                    HttpStatus.SERVICE_UNAVAILABLE.toString()));
+            throw new AdapterServerErrorException(
+                    String.format("Remote runtime %s is not online. Runtime status: %s.",
+                            engine,
+                            runtimes.get(engine).get("status").asText()));
         }
         String remoteServer = runtimes.get(engine).at("/url").asText();
 
         try {
             String proxyEndpoint = "proxy";
             ((ObjectNode) deploymentSpec)
-                    .put("baseUrl", String.format("%s/%s/%s", shelfAddress, proxyEndpoint, absoluteLocation));
+                    .put("baseUrl", String.format("%s/%s/%s", activatorBaseUrl, proxyEndpoint, absoluteLocation));
 
             ((ObjectNode) deploymentSpec).put("uri", endpointURI.toString());
 
@@ -154,47 +149,25 @@ public class ProxyAdapter implements Adapter {
             return new Executor() {
                 @Override
                 public Object execute(Object input, String contentType) {
-
                     try {
                         headers.setContentType(MediaType.valueOf(contentType));
                         HttpEntity<Object> executionReq = new HttpEntity<>(input, headers);
                         return restTemplate.postForObject(remoteEndpoint.toString(), executionReq, JsonNode.class).get("result");
                     } catch (HttpClientErrorException e) {
-                        if (e.getStatusCode().equals(HttpStatus.BAD_REQUEST)) {
-                            throw new AdapterException(
-                                    "Runtime error when executing object. Check code and inputs.");
-                        } else {
-                            throw new AdapterException(
-                                    "Cannot access object payload in remote environment. "
-                                            + "Cannot connect to url "
-                                            + remoteEndpoint.toString());
-                        }
-                    } catch (ResourceAccessException e) {
-                        throw new AdapterException(
-                                "Cannot access object payload in remote environment. "
-                                        + "Cannot connect to url "
-                                        + remoteEndpoint.toString());
+                        throw new AdapterClientErrorException(e.getMessage(), e);
+                    } catch (HttpServerErrorException e) {
+                        throw new AdapterServerErrorException(e.getMessage(), e);
+                    } catch (Exception e) {
+                        throw new AdapterException(e.getMessage(), e);
                     }
                 }
             };
         } catch (HttpClientErrorException e) {
-            String errorMessage;
-            try {
-                errorMessage = new ObjectMapper().readTree(e.getResponseBodyAsString()).get("description").asText();
-            } catch (JsonProcessingException jsonProcessingException) {
-                errorMessage = e.getResponseBodyAsString();
-            }
-            throw new AdapterException(
-                    String.format("Client error activating object at address %s/deployments: %s", remoteServer,
-                            errorMessage), e);
+            throw new AdapterClientErrorException(e.getMessage(), e);
         } catch (HttpServerErrorException e) {
-            throw new AdapterException(
-                    String.format("Remote runtime %s server error: %s", remoteServer, e.getMessage()), e);
-        } catch (MalformedURLException e) {
-            throw new AdapterException(
-                    String.format(
-                            "Invalid URL returned when activating object at address %s/deployments",
-                            remoteServer), e);
+            throw new AdapterServerErrorException(e.getMessage(), e);
+        } catch (Exception e) {
+            throw new AdapterException(e.getMessage(), e);
         }
     }
 
