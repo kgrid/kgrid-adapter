@@ -4,16 +4,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import net.bytebuddy.description.NamedElement;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-import org.kgrid.adapter.api.ActivationContext;
-import org.kgrid.adapter.api.AdapterException;
-import org.kgrid.adapter.api.Executor;
+import org.kgrid.adapter.api.*;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.*;
@@ -32,6 +28,7 @@ import java.util.UUID;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ProxyAdapterTest {
@@ -108,15 +105,15 @@ public class ProxyAdapterTest {
                                 "{\"engine\":\"" + NODE_ENGINE + "\", \"version\":\"" + NODE_VERSION + "\", \"url\":\"" + REMOTE_RUNTIME_URL + "\"}");
         proxyAdapter.registerRemoteRuntime(runtimeDetailNode, mockHttpServletRequest);
 
-        Mockito.when(
+        when(
                 restTemplate.postForObject(
                         REMOTE_RUNTIME_URL + "/endpoints",
                         new HttpEntity<>(activationRequestBody, headers),
                         JsonNode.class))
                 .thenReturn(activationResponseBody);
-        Mockito.when(restTemplate.getForEntity(REMOTE_RUNTIME_URL + "/info", JsonNode.class))
+        when(restTemplate.getForEntity(REMOTE_RUNTIME_URL + "/info", JsonNode.class))
                 .thenReturn(new ResponseEntity<>(infoResponseBody, HttpStatus.OK));
-        Mockito.when(
+        when(
                 restTemplate.postForObject(
                         PROXY_SHELF_URL + "/" + REMOTE_URL_HASH,
                         new HttpEntity<>(input, headers),
@@ -172,29 +169,102 @@ public class ProxyAdapterTest {
     }
 
     @Test
-    public void testActivateRemoteNonexistentObject() {
-        Mockito.when(restTemplate.postForObject(anyString(), any(HttpEntity.class), eq(JsonNode.class)))
+    public void testExecuteRemoteObject_ThrowsAdapterClientErrorException() {
+        when(
+                restTemplate.postForObject(
+                        PROXY_SHELF_URL + "/" + REMOTE_URL_HASH,
+                        new HttpEntity<>(input, headers),
+                        JsonNode.class))
+                .thenThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST,ERROR_MESSAGE));
+        Executor executor = proxyAdapter.activate(objectLocation, ENDPOINT_URI, deploymentDesc);
+
+        AdapterClientErrorException exception = Assert.assertThrows(AdapterClientErrorException.class,
+                () -> {
+                    executor.execute(input, headers.getContentType().toString());
+                });
+        assertEquals("400 " + ERROR_MESSAGE, exception.getMessage());
+    }
+
+    @Test
+    public void testExecuteRemoteObject_ThrowsAdapterServerErrorException() {
+        when(
+                restTemplate.postForObject(
+                        PROXY_SHELF_URL + "/" + REMOTE_URL_HASH,
+                        new HttpEntity<>(input, headers),
+                        JsonNode.class))
+                .thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR,ERROR_MESSAGE));
+        Executor executor = proxyAdapter.activate(objectLocation, ENDPOINT_URI, deploymentDesc);
+
+        AdapterServerErrorException exception = Assert.assertThrows(AdapterServerErrorException.class,
+                () -> {
+                    executor.execute(input, headers.getContentType().toString());
+                });
+        assertEquals("500 " + ERROR_MESSAGE, exception.getMessage());
+    }
+
+    @Test
+    public void testExecuteRemoteObject_ThrowsAdapterExceptionForNonClientOrServerExceptions() {
+        when(
+                restTemplate.postForObject(
+                        PROXY_SHELF_URL + "/" + REMOTE_URL_HASH,
+                        new HttpEntity<>(input, headers),
+                        JsonNode.class))
+                .thenThrow(new RuntimeException(ERROR_MESSAGE));
+        Executor executor = proxyAdapter.activate(objectLocation, ENDPOINT_URI, deploymentDesc);
+
+        AdapterException exception = Assert.assertThrows(AdapterException.class,
+                () -> {
+                    executor.execute(input, headers.getContentType().toString());
+                });
+        assertEquals(ERROR_MESSAGE, exception.getMessage());
+    }
+
+    @Test
+    public void testActivateThrowsAdapterServerError_IfRemoteIsDown() {
+        when(restTemplate.getForEntity(REMOTE_RUNTIME_URL + "/info", JsonNode.class))
+                .thenThrow(new RuntimeException(ERROR_MESSAGE));
+
+        AdapterServerErrorException exception = Assert.assertThrows(AdapterServerErrorException.class,
+                () -> {
+                    proxyAdapter.activate(objectLocation, ENDPOINT_URI, deploymentDesc);
+                });
+        assertEquals(String.format(
+                "Remote runtime %s is not online. Runtime status: Activator could not connect to runtime.",
+                NODE_ENGINE), exception.getMessage());
+    }
+
+    @Test
+    public void testActivateThrowsAdapterClientError_WhenClientErrorDuringActivation() {
+        when(restTemplate.postForObject(anyString(), any(HttpEntity.class), eq(JsonNode.class)))
                 .thenThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST, ERROR_MESSAGE, ERROR_MESSAGE.getBytes(), Charset.defaultCharset()));
 
-        expected.expect(AdapterException.class);
-        expected.expectMessage(
-                String.format("Client error activating object at address %s/deployments: %s",
-                        REMOTE_RUNTIME_URL, ERROR_MESSAGE));
+        expected.expect(AdapterClientErrorException.class);
+        expected.expectMessage(ERROR_MESSAGE);
         expected.expectCause(instanceOf(HttpClientErrorException.class));
 
         proxyAdapter.activate(objectLocation, ENDPOINT_URI, deploymentDesc);
     }
 
     @Test
-    public void remoteRuntimeFailureGeneratesAdapterException() {
-        Mockito.when(restTemplate.postForObject(anyString(), any(), eq(JsonNode.class)))
+    public void testActivateThrowsAdapterServerError_WhenServerErrorDuringActivation() {
+        when(restTemplate.postForObject(anyString(), any(), eq(JsonNode.class)))
                 .thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR, ERROR_MESSAGE));
 
-        expected.expect(AdapterException.class);
-        expected.expectMessage(
-                String.format("Remote runtime %s server error: %s",
-                        REMOTE_RUNTIME_URL, "500 " + ERROR_MESSAGE));
+        expected.expect(AdapterServerErrorException.class);
+        expected.expectMessage(ERROR_MESSAGE);
         expected.expectCause(instanceOf(HttpServerErrorException.class));
+
+        proxyAdapter.activate(objectLocation, ENDPOINT_URI, deploymentDesc);
+    }
+
+    @Test
+    public void testActivateThrowsAdapterError_WhenGeneralErrorDuringActivation() {
+        when(restTemplate.postForObject(anyString(), any(), eq(JsonNode.class)))
+                .thenThrow(new RuntimeException(ERROR_MESSAGE));
+
+        expected.expect(AdapterException.class);
+        expected.expectMessage(ERROR_MESSAGE);
+        expected.expectCause(instanceOf(RuntimeException.class));
 
         proxyAdapter.activate(objectLocation, ENDPOINT_URI, deploymentDesc);
     }
