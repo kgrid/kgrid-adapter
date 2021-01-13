@@ -118,14 +118,17 @@ This should return json containing url that the proxy adapter can then call with
 ```
 
 ### Post `/{endpoint}`
-This accepts an object that contains the inputs to be used when executing the object at that url. For example the hello world
-object in the node environment takes a json object in the following format:
+This is the request endpoint described by the KO, and exposed by the activator. 
+This accepts the inputs to be used when executing the object at that url, 
+which should be specified in the KO. 
+
+For example, the node/simple/1.0 object in the node environment takes an input of a json object in the 
+following format:
 ```json
 {
     "name": "Tom"
 }
 ```
-
 This returns the result of the execution in an object with the key "result" and other corroborating data.
 For example the hello world object returns:
 ```json
@@ -133,4 +136,52 @@ For example the hello world object returns:
     "result": "Welcome to Knowledge Grid, Tom",
     "request_id": "4348f1a8-c6bb-435c-9a95-32bce84991f9"
 }
+``` 
+
+Results from remote runtimes will be parsed as follows:
+
+####1. If the result is valid JSON, and contains the key "result", 
+```json
+{
+    "result": "Welcome to Knowledge Grid, Tom",
+    "someOtherInfo": "This came from the C++ runtime"
+}
+```
+the value of result from the runtime
+   will be returned to the activator (The activator, may also wrap this result)
+```text
+Welcome to Knowledge Grid, Tom
+``` 
+WARNING: If your object's response is an object that contains the key "result", the rest of the response will be thrown away.
+For example if the response contains only information intended to be part of the response, 
+but one of the keys is labeled "result":
+```json
+{
+    "result": "Welcome to Knowledge Grid, Tom",
+    "alsoPartOfTheAnswer": "You have 5 minutes to move your car, or it will be crushed into a cube",
+    "thisIsImportantToo": "Your car has been crushed into a cube",
+    "thisAsWell": "You have 5 minutes to move your cube"
+}
+```
+only the field "result" will be returned:
+```text
+Welcome to Knowledge Grid, Tom
+``` 
+
+####2. If the result is valid JSON, but does not contain the key "result",
+```json
+{
+  "greeting": "Welcome to Knowledge Grid, Tom"
+}
+``` 
+   the entire JSON node will be returned to the activator.
+```json
+{
+ "greeting": "Welcome to Knowledge Grid, Tom"
+}
+``` 
+
+####3. If the result is not valid JSON, the raw result will be returned to the activator.
+```text
+Welcome to Knowledge Grid, Tom
 ``` 

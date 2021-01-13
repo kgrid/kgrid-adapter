@@ -152,12 +152,18 @@ public class ProxyAdapter implements Adapter {
                     try {
                         headers.setContentType(MediaType.valueOf(contentType));
                         HttpEntity<Object> executionReq = new HttpEntity<>(input, headers);
-                        final JsonNode response = restTemplate
-                            .postForObject(remoteEndpoint.toString(), executionReq, JsonNode.class);
-                        if(response.has("result"))
-                            return response.get("result");
-                        else
-                            return response;
+                        String runtimeResult = restTemplate.postForObject(
+                                remoteEndpoint.toString(), executionReq, String.class);
+                        try {
+                            JsonNode resultJson = new ObjectMapper().readTree(runtimeResult);
+                            if(resultJson.has("result")){
+                                return resultJson.get("result");
+                            }
+                            return resultJson;
+                        } catch (Exception e){
+                            log.error(e.getMessage());
+                        }
+                        return runtimeResult;
                     } catch (HttpClientErrorException e) {
                         throw new AdapterClientErrorException(e.getMessage(), e);
                     } catch (HttpServerErrorException e) {
