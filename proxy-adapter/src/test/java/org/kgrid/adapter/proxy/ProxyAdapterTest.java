@@ -44,6 +44,7 @@ public class ProxyAdapterTest {
     private static final String TYPE_JSON = "application/json";
     public static final String NODE_ENGINE = "node";
     public static final String NODE_VERSION = "1.0";
+    public static final String RUNTIME_EXECUTE_RESPONSE = "response from runtime";
     private String ERROR_MESSAGE = "Kaboom, baby";
     private final URI objectLocation = URI.create(NAAN + "-" + NAME + "-" + API_VERSION);
 
@@ -62,7 +63,7 @@ public class ProxyAdapterTest {
     private ObjectNode deploymentDesc = mapper.createObjectNode();
     private ObjectNode activationRequestBody = mapper.createObjectNode();
     private ObjectNode activationResponseBody = mapper.createObjectNode();
-    private ObjectNode executionResponseBody = mapper.createObjectNode();
+    private String executionResponseBody = RUNTIME_EXECUTE_RESPONSE;
     private JsonNode input;
     private HttpHeaders headers = new HttpHeaders();
     private ObjectNode runtimeDetailNode;
@@ -117,7 +118,7 @@ public class ProxyAdapterTest {
                 restTemplate.postForObject(
                         PROXY_SHELF_URL + "/" + REMOTE_URL_HASH,
                         new HttpEntity<>(input, headers),
-                        JsonNode.class))
+                        String.class))
                 .thenReturn(executionResponseBody);
     }
 
@@ -162,10 +163,37 @@ public class ProxyAdapterTest {
     }
 
     @Test
-    public void testExecuteRemoteObject() {
+    public void testExecuteRemoteObject_whenStringIsReturned() {
+        Executor activatedHello = proxyAdapter.activate(objectLocation, ENDPOINT_URI, deploymentDesc);
+        String result = (String) activatedHello.execute(input, TYPE_JSON);
+        assertEquals(RUNTIME_EXECUTE_RESPONSE, result);
+    }
+
+    @Test
+    public void testExecuteRemoteObject_whenJsonIsReturned_WithResult() {
+        when(
+                restTemplate.postForObject(
+                        PROXY_SHELF_URL + "/" + REMOTE_URL_HASH,
+                        new HttpEntity<>(input, headers),
+                        String.class))
+                .thenReturn("{\"result\":\"" + RUNTIME_EXECUTE_RESPONSE + "\"}");
         Executor activatedHello = proxyAdapter.activate(objectLocation, ENDPOINT_URI, deploymentDesc);
         JsonNode result = (JsonNode) activatedHello.execute(input, TYPE_JSON);
-        assertEquals("Welcome to Knowledge Grid, test", result.asText());
+        assertEquals(RUNTIME_EXECUTE_RESPONSE, result.asText());
+    }
+
+    @Test
+    public void testExecuteRemoteObject_whenJsonIsReturned_WithNoResult() {
+        String returnedJson = "{\"somethingElse\":\"" + RUNTIME_EXECUTE_RESPONSE + "\"}";
+        when(
+                restTemplate.postForObject(
+                        PROXY_SHELF_URL + "/" + REMOTE_URL_HASH,
+                        new HttpEntity<>(input, headers),
+                        String.class))
+                .thenReturn(returnedJson);
+        Executor activatedHello = proxyAdapter.activate(objectLocation, ENDPOINT_URI, deploymentDesc);
+        JsonNode result = (JsonNode) activatedHello.execute(input, TYPE_JSON);
+        assertEquals(returnedJson, result.toString());
     }
 
     @Test
@@ -174,8 +202,8 @@ public class ProxyAdapterTest {
                 restTemplate.postForObject(
                         PROXY_SHELF_URL + "/" + REMOTE_URL_HASH,
                         new HttpEntity<>(input, headers),
-                        JsonNode.class))
-                .thenThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST,ERROR_MESSAGE));
+                        String.class))
+                .thenThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST, ERROR_MESSAGE));
         Executor executor = proxyAdapter.activate(objectLocation, ENDPOINT_URI, deploymentDesc);
 
         AdapterClientErrorException exception = Assert.assertThrows(AdapterClientErrorException.class,
@@ -191,8 +219,8 @@ public class ProxyAdapterTest {
                 restTemplate.postForObject(
                         PROXY_SHELF_URL + "/" + REMOTE_URL_HASH,
                         new HttpEntity<>(input, headers),
-                        JsonNode.class))
-                .thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR,ERROR_MESSAGE));
+                        String.class))
+                .thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR, ERROR_MESSAGE));
         Executor executor = proxyAdapter.activate(objectLocation, ENDPOINT_URI, deploymentDesc);
 
         AdapterServerErrorException exception = Assert.assertThrows(AdapterServerErrorException.class,
@@ -208,7 +236,7 @@ public class ProxyAdapterTest {
                 restTemplate.postForObject(
                         PROXY_SHELF_URL + "/" + REMOTE_URL_HASH,
                         new HttpEntity<>(input, headers),
-                        JsonNode.class))
+                        String.class))
                 .thenThrow(new RuntimeException(ERROR_MESSAGE));
         Executor executor = proxyAdapter.activate(objectLocation, ENDPOINT_URI, deploymentDesc);
 
@@ -303,7 +331,6 @@ public class ProxyAdapterTest {
                 .put("baseUrl", PROXY_SHELF_URL)
                 .put("uri", REMOTE_URL_HASH)
                 .put("activated", "Tue Feb 18 2020 16:44:15 GMT-0500 (Eastern Standard Time)");
-        executionResponseBody
-                .put("result", "Welcome to Knowledge Grid, test");
+
     }
 }
