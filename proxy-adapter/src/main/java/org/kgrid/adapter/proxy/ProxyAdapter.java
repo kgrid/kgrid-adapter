@@ -58,17 +58,19 @@ public class ProxyAdapter implements Adapter {
 
         if (runtimeEngine.isMissingNode() || runtimeEngine.asText().equals("")) {
             runtimeDetails.put("status", "Not registered: Runtime failed to specify engine");
-            runtimes.put(runtimeEngine.asText(), runtimeDetails);
+//            runtimes.put(runtimeEngine.asText(), runtimeDetails);
             return new ResponseEntity<>(runtimeDetails, HttpStatus.BAD_REQUEST);
         }
         if (runtimeAddress.isMissingNode() || runtimeAddress.asText().equals("")) {
             runtimeDetails.put("status", "Not registered: Runtime failed to specify its url");
-            runtimes.put(runtimeEngine.asText(), runtimeDetails);
+//            runtimes.put(runtimeEngine.asText(), runtimeDetails);
             return new ResponseEntity<>(runtimeDetails, HttpStatus.BAD_REQUEST);
         }
         if (runtimes.get(runtimeEngine.asText()) != null) {
             log.info("Overwriting remote address for the " + runtimeEngine + " environment. New address is: " + runtimeAddress);
-        } else {
+            runtimeDetails.put("status","existing runtime");
+         } else {
+            runtimeDetails.put("status","new");
             log.info(
                     "Adding a new remote environment to the registry that can handle "
                             + runtimeEngine
