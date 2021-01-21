@@ -29,8 +29,8 @@ public class ProxyAdapterControllerTest {
     // and
     given(ctx.getBinary(any(URI.class))).willReturn(new ByteArrayInputStream("Hi, Bob".getBytes()));
     given(req.getRequestURI())
-        .willReturn("/proxy/proxy/name/version/src/index.js")
-        .willReturn("/proxy/naan/name/version/src/index.js");
+        .willReturn("/proxy/artifacts/proxy/name/version/src/index.js")
+        .willReturn("/proxy/artifacts/naan/name/version/src/index.js");
 
     adapter.getCodeArtifact(req);
 

@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -36,16 +37,17 @@ import org.springframework.web.client.RestTemplate;
 
 @CrossOrigin
 @RestController
+@RequestMapping("/proxy")
 public class ProxyAdapter implements Adapter {
     static Map<String, ObjectNode> runtimes = new HashMap<>();
-    static String activatorBaseUrl;
+    static String koArtifactsBaseUrl;
     static ActivationContext activationContext;
     private final Logger log = LoggerFactory.getLogger(getClass());
     @Autowired
     private RestTemplate restTemplate;
 
     @PostMapping(
-            value = "/proxy/environments",
+            value = "/environments",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> registerRemoteRuntime(
@@ -75,26 +77,26 @@ public class ProxyAdapter implements Adapter {
         }
         runtimes.put(runtimeEngine.asText(), runtimeDetails);
         String thisURL = req.getRequestURL().toString();
-        activatorBaseUrl = StringUtils.substringBefore(thisURL, "/proxy/environments");
+        koArtifactsBaseUrl = StringUtils.substringBefore(thisURL, "/proxy/environments");
         return new ResponseEntity<>(runtimeDetails, HttpStatus.OK);
     }
 
-    @GetMapping(value = "/proxy/environments", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/environments", produces = MediaType.APPLICATION_JSON_VALUE)
     public ArrayNode getRuntimeDetails() {
         log.info("Returning list of all available runtimes.");
         return getRuntimes();
     }
 
-    @GetMapping(value = "/proxy/environments/{engine}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/environments/{engine}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ObjectNode getRuntimeDetails(@PathVariable String engine) {
         log.info(String.format("Returning info on the %s engine.", engine));
         return runtimes.get(engine);
     }
 
-    @GetMapping(value = "/proxy/**")
+    @GetMapping(value = "/artifacts/**")
     public InputStreamResource getCodeArtifact(HttpServletRequest request) {
         String requestURI = request.getRequestURI();
-        URI path = URI.create(StringUtils.substringAfter(requestURI, "proxy/"));
+        URI path = URI.create(StringUtils.substringAfter(requestURI, "proxy/artifacts/"));
         return new InputStreamResource(activationContext.getBinary(path));
     }
 
@@ -120,9 +122,9 @@ public class ProxyAdapter implements Adapter {
         String remoteServer = runtimes.get(engine).at("/url").asText();
 
         try {
-            String proxyEndpoint = "proxy";
+            String proxyEndpoint = "proxy/artifacts";  // or /proxy/{naan}/{name}/**
             ((ObjectNode) deploymentSpec)
-                    .put("baseUrl", String.format("%s/%s/%s", activatorBaseUrl, proxyEndpoint, absoluteLocation));
+                    .put("baseUrl", String.format("%s/%s/%s", koArtifactsBaseUrl, proxyEndpoint, absoluteLocation));
 
             ((ObjectNode) deploymentSpec).put("uri", endpointURI.toString());
 

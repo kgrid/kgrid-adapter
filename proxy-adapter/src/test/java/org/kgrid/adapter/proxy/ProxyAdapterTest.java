@@ -320,7 +320,7 @@ public class ProxyAdapterTest {
                         "http://localhost"
                                 + ":"
                                 + "8080"
-                                + "/proxy/"
+                                + "/proxy/artifacts/"
                                 + NAAN
                                 + "-"
                                 + NAME
