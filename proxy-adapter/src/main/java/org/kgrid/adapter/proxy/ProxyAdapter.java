@@ -70,16 +70,15 @@ public class ProxyAdapter implements Adapter {
         }
         if (runtimeEngine.isMissingNode() || runtimeEngine.asText().equals("")) {
             runtimeDetails.put("status", "Not registered: Runtime failed to specify engine");
-//            runtimes.put(runtimeEngine.asText(), runtimeDetails);
             return new ResponseEntity<>(runtimeDetails, HttpStatus.BAD_REQUEST);
         }
         if (runtimeAddress.isMissingNode() || runtimeAddress.asText().equals("")) {
             runtimeDetails.put("status", "Not registered: Runtime failed to specify its url");
-//            runtimes.put(runtimeEngine.asText(), runtimeDetails);
             return new ResponseEntity<>(runtimeDetails, HttpStatus.BAD_REQUEST);
         }
         if (runtimes.get(runtimeEngine.asText()) != null) {
-            log.info("Overwriting remote address for the " + runtimeEngine + " environment. New address is: " + runtimeAddress);
+            if(runtimeAddress==runtimes.get(runtimeEngine.asText()).get("url"))
+                log.info("Overwriting remote address for the " + runtimeEngine + " environment. New address is: " + runtimeAddress);
             runtimeDetails.put("status","existing runtime");
             update = update || forceUpdate;
          } else {
@@ -97,7 +96,7 @@ public class ProxyAdapter implements Adapter {
         if(update) {
             proxyActivationController.initiateRefreshEngine(koArtifactsBaseUrl, runtimeEngine.asText());
         }
-        log.info("Runtime Registration is completed");
+        log.debug("Runtime Registration is completed");
 
         return new ResponseEntity<>(runtimeDetails, HttpStatus.OK);
     }
@@ -161,7 +160,7 @@ public class ProxyAdapter implements Adapter {
                             : new URL(activationResult.get("baseUrl").asText());
             URL remoteEndpoint = new URL(remoteServerUrl, activationResult.get("uri").asText());
 
-            log.info(
+            log.debug(
                     "Deployed object with endpoint id "
                             + endpointURI
                             + " to the "
