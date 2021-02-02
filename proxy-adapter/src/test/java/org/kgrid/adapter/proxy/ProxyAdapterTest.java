@@ -54,6 +54,8 @@ public class ProxyAdapterTest {
     public ExpectedException expected = ExpectedException.none();
     @Mock
     RestTemplate restTemplate;
+    @Mock
+    ProxyActivationController proxyActivationController;
     @InjectMocks
     private ProxyAdapter proxyAdapter;
 
@@ -103,7 +105,7 @@ public class ProxyAdapterTest {
         runtimeDetailNode = (ObjectNode)
                 new ObjectMapper()
                         .readTree(
-                                "{\"engine\":\"" + NODE_ENGINE + "\", \"version\":\"" + NODE_VERSION + "\", \"url\":\"" + REMOTE_RUNTIME_URL + "\"}");
+                                "{\"engine\":\"" + NODE_ENGINE + "\", \"version\":\"" + NODE_VERSION + "\", \"forceUpdate\":\"false\",\"url\":\"" + REMOTE_RUNTIME_URL + "\"}");
         proxyAdapter.registerRemoteRuntime(runtimeDetailNode, mockHttpServletRequest);
 
         when(
