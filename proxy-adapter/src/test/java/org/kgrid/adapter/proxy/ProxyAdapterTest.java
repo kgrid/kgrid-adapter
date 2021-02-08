@@ -33,9 +33,18 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("Proxy Adapter Tests")
 public class ProxyAdapterTest {
+
+  @InjectMocks
+  ProxyAdapter proxyAdapter;
+
+  @Mock
+  RestTemplate restTemplate;
+
+  @Mock
+  ProxyActivationController proxyActivationController;
+
   private static final String REMOTE_RUNTIME_URL = "http://remote-runtime.com";
   private static final String PROXY_SHELF_URL = "http://proxy-adapter.com";
   private static final String NAAN = "hello";
@@ -51,12 +60,7 @@ public class ProxyAdapterTest {
   public static final String RUNTIME_EXECUTE_RESPONSE = "response from runtime";
   private final String ERROR_MESSAGE = "Kaboom, baby";
   private final URI objectLocation = URI.create(String.format("%s-%s-%s", NAAN, NAME, API_VERSION));
-
   private final ObjectMapper mapper = new ObjectMapper();
-
-  @Mock RestTemplate restTemplate;
-  @Mock ProxyActivationController proxyActivationController;
-  @InjectMocks private ProxyAdapter proxyAdapter;
 
   ClassPathResource helloWorldCode = new ClassPathResource("shelf/hello-proxy-v1.0/src/welcome.js");
   private final MockEnvironment env = new MockEnvironment();
@@ -64,7 +68,7 @@ public class ProxyAdapterTest {
   private final ObjectNode deploymentDesc = mapper.createObjectNode();
   private ObjectNode activationRequestBody = mapper.createObjectNode();
   private final ObjectNode activationResponseBody = mapper.createObjectNode();
-  private JsonNode input;
+  private final JsonNode input = mapper.createObjectNode().put("name", "test");
   private final HttpHeaders headers = new HttpHeaders();
   private final MockHttpServletRequest mockHttpServletRequest = new MockHttpServletRequest();
 
@@ -72,7 +76,6 @@ public class ProxyAdapterTest {
   public void setUp() throws JsonProcessingException {
     setUpResponseBodies();
     headers.setContentType(MediaType.APPLICATION_JSON);
-    input = mapper.createObjectNode().put("name", "test");
 
     proxyAdapter.initialize(
         new ActivationContext() {
@@ -101,8 +104,7 @@ public class ProxyAdapterTest {
     mockHttpServletRequest.setServerPort(8080);
     ObjectNode runtimeDetailNode =
         (ObjectNode)
-            new ObjectMapper()
-                .readTree(
+            mapper.readTree(
                     "{\"engine\":\""
                         + NODE_ENGINE
                         + "\", \"version\":\""
