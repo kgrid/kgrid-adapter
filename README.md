@@ -146,7 +146,7 @@ Example deployment descriptor:
 ## Additional Information
 
 ### Adding a new Adapter
-Creating new Adapters requires you implement the Adapter API interface. The adapters utilize Java Services and require that you package your adapter with a service identifer the META-INF.
+Creating new Adapters requires that you implement the Adapter API interface. The adapters utilize Java Services and require that you package your adapter with a service identifer the META-INF.
 Create a file in the `resources/META-INF/services` directory called `org.kgrid.adapter` with a single line that is the fully qualified class name of your adapter. 
 ```
 resources
