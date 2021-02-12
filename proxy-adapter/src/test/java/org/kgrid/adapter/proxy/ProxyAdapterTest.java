@@ -99,6 +99,9 @@ public class ProxyAdapterTest {
           public String getProperty(String key) {
             return env.getProperty(key);
           }
+
+          @Override
+          public void reactivate(String engineName) {}
         });
     mockHttpServletRequest.setRequestURI("/proxy/environments");
     mockHttpServletRequest.setServerPort(8080);
@@ -149,6 +152,11 @@ public class ProxyAdapterTest {
             @Override
             public String getProperty(String key) {
               return env.getProperty(key);
+            }
+
+            @Override
+            public void reactivate(String engineName) {
+
             }
           });
     } catch (AdapterException e) {

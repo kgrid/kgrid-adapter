@@ -12,4 +12,6 @@ public interface ActivationContext {
   InputStream getBinary(URI pathToBinary);
 
   String getProperty(String key);
+
+  void reactivate(String engineName);
 }
