@@ -59,12 +59,12 @@ public class ProxyAdapter implements Adapter {
     public ResponseEntity<JsonNode> registerRemoteRuntime(
             @RequestBody ObjectNode runtimeDetails, HttpServletRequest req) {
 
-        Boolean update = false;
+        boolean update;
 
         JsonNode runtimeEngine = runtimeDetails.at("/engine");
         JsonNode runtimeAddress = runtimeDetails.at("/url");
         JsonNode runtimeForceUpdate = runtimeDetails.at("/forceUpdate");
-        Boolean forceUpdate = false;
+        boolean forceUpdate = false;
         if(runtimeForceUpdate!=null){
             forceUpdate = runtimeForceUpdate.asBoolean();
         }
@@ -80,7 +80,7 @@ public class ProxyAdapter implements Adapter {
             if(runtimeAddress==runtimes.get(runtimeEngine.asText()).get("url"))
                 log.info("Overwriting remote address for the " + runtimeEngine + " environment. New address is: " + runtimeAddress);
             runtimeDetails.put("status","existing runtime");
-            update = update || forceUpdate;
+            update = forceUpdate;
          } else {
             runtimeDetails.put("status","new");
             log.info(
@@ -94,7 +94,7 @@ public class ProxyAdapter implements Adapter {
         String thisURL = req.getRequestURL().toString();
         koArtifactsBaseUrl = StringUtils.substringBefore(thisURL, "/proxy/environments");
         if(update) {
-            proxyActivationController.initiateRefreshEngine(koArtifactsBaseUrl, runtimeEngine.asText());
+            proxyActivationController.initiateRefreshEngine(runtimeEngine.asText());
         }
         log.debug("Runtime Registration is completed");
 

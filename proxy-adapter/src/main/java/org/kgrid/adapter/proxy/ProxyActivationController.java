@@ -14,12 +14,9 @@ public class ProxyActivationController {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    @Autowired
-    private RestTemplate restTemplate;
-
     @Async
-    public void initiateRefreshEngine(String activatorBaseUrl, String engine){
+    public void initiateRefreshEngine(String engine){
         log.warn("Refresh has started.");
-        restTemplate.getForEntity(activatorBaseUrl + "/refresh/"+engine, ArrayList.class);
+        ProxyAdapter.activationContext.reactivate(engine);
     }
 }
