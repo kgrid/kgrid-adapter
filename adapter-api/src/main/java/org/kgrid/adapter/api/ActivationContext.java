@@ -13,5 +13,5 @@ public interface ActivationContext {
 
   String getProperty(String key);
 
-  void reactivate(String engineName);
+  void refresh(String engineName);
 }

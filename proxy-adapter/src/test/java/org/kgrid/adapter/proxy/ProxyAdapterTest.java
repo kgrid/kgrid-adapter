@@ -42,9 +42,6 @@ public class ProxyAdapterTest {
   @Mock
   RestTemplate restTemplate;
 
-  @Mock
-  ProxyActivationController proxyActivationController;
-
   private static final String REMOTE_RUNTIME_URL = "http://remote-runtime.com";
   private static final String PROXY_SHELF_URL = "http://proxy-adapter.com";
   private static final String NAAN = "hello";
@@ -101,7 +98,7 @@ public class ProxyAdapterTest {
           }
 
           @Override
-          public void reactivate(String engineName) {}
+          public void refresh(String engineName) {}
         });
     mockHttpServletRequest.setRequestURI("/proxy/environments");
     mockHttpServletRequest.setServerPort(8080);
@@ -155,7 +152,7 @@ public class ProxyAdapterTest {
             }
 
             @Override
-            public void reactivate(String engineName) {
+            public void refresh(String engineName) {
 
             }
           });

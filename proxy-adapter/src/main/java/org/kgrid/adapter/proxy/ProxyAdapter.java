@@ -49,9 +49,6 @@ public class ProxyAdapter implements Adapter {
     @Autowired
     private RestTemplate restTemplate;
 
-    @Autowired
-    public ProxyActivationController proxyActivationController;
-
     @PostMapping(
             value = "/environments",
             consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -94,7 +91,7 @@ public class ProxyAdapter implements Adapter {
         String thisURL = req.getRequestURL().toString();
         koArtifactsBaseUrl = StringUtils.substringBefore(thisURL, "/proxy/environments");
         if(update) {
-            proxyActivationController.initiateRefreshEngine(runtimeEngine.asText());
+            activationContext.refresh(runtimeEngine.asText());
         }
         log.debug("Runtime Registration is completed");
 
