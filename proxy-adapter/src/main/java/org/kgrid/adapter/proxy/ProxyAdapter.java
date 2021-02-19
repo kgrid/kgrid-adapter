@@ -17,7 +17,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.kgrid.adapter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -46,8 +45,7 @@ public class ProxyAdapter implements Adapter {
     static ActivationContext activationContext;
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    @Autowired
-    private RestTemplate restTemplate;
+    private RestTemplate restTemplate = new RestTemplate();
 
     @PostMapping(
             value = "/environments",
