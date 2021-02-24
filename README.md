@@ -145,7 +145,7 @@ Example deployment descriptor:
     See the [Resource Adapter Readme](https://github.com/kgrid/resource-adapter) for more information.
 ## Additional Information
 
-### Adding a new Adapter
+### Creating a new Adapter
 Creating new Adapters requires that you implement the Adapter API interface. The adapters utilize Java Services and require that you package your adapter with a service identifer the META-INF.
 Create a file in the `resources/META-INF/services` directory called `org.kgrid.adapter.api.Adapter` with a single line that is the fully qualified class name of your adapter eg: `org.kgrid.adapter.proxy.ProxyAdapter`. 
 ```
@@ -154,3 +154,6 @@ resources
      services
         org.kgrid.adapter.api.Adapter
 ```
+
+You can load your adapter by adding the uri of your built adapter jar file to the comma-seperated list of adapter locations property in the activator, ex:
+add the line `kgrid.activator.adapter-locations=file:adapters,http://example.com/adapters/my-adapter-1.0.0.jar` to the activator's application.properties file.
