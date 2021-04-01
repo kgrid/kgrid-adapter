@@ -22,7 +22,7 @@ There are currently no configurable settings for this adapter.
 As an embedded adapter, this will automatically be enabled when the activator starts.
 
 ##Guidance for Knowledge Object Developers
-Thi adapter is for activating Knowledge Objects written in languages supported by connected remote runtimes. Two such runtimes are currently available: the [nodejs](https://github.com/kgrid/kgrid-node-runtime) and [python](https://github.com/kgrid/kgrid-python-runtime) runtimes.
+This adapter is for activating Knowledge Objects written in languages supported by connected remote runtimes. Two such runtimes are currently available: the [nodejs](https://github.com/kgrid/kgrid-node-runtime) and [python](https://github.com/kgrid/kgrid-python-runtime) runtimes.
 
 An example KO with naan of `hello`, a name of `neighbor`, api version of `1.0`, and endpoint `welcome`,
 a Deployment Specification might look like this:
