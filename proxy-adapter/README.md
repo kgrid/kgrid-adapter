@@ -1,17 +1,60 @@
-# Kgrid Proxy Adapter API with Remote Runtime Proxy 
+# Kgrid Proxy Adapter
 
+This proxy adapter communicates with remote runtimes that can execute knowledge object code in a native environment such as python and return json results back to the activator.
+This allows knowledge object developers to utilize unique language features which are not available in embedded java runtimes. (See the example node and python objects.)
 
-When using the Proxy Adapter the Activator delegates most activation, deployment and request handling for knowledge objects services (KO endpoints) to the remote runtime using the Proxy API.
+## Installation
 
-A Kgrid-enabled runtime can implement a simple API for interacting with the KGrid Activator. Using the REST API, the runtime proxy component can register with an Activator, receive activation messages for specific KO endpoints, fetch code and other artifacts to deploy, and handle requests routed to each deployed endpoint in the runtime.
+This is an embedded runtime, already pulled in by the activator
+as a dependency. If you'd like to include it in your maven project,
+do so by adding the following dependency to your pom.xml file:
+```
+<dependency>
+  <groupId>org.kgrid</groupId>
+  <artifactId>proxy-adapter</artifactId>
+</dependency>
+```
+
+## Configuration
+There are currently no configurable settings for this adapter.
+
+## Start the runtime
+As an embedded adapter, this will automatically be enabled when the activator starts.
+
+##Guidance for Knowledge Object Developers
+Thi adapter is for activating Knowledge Objects written in languages supported by connected remote runtimes. Two such runtimes are currently available: the [nodejs](https://github.com/kgrid/kgrid-node-runtime) and [python](https://github.com/kgrid/kgrid-python-runtime) runtimes.
+
+An example KO with naan of `hello`, a name of `neighbor`, api version of `1.0`, and endpoint `welcome`,
+a Deployment Specification might look like this:
+
+```yaml
+/welcome:
+  post:
+    artifact:
+      - "src/welcome.py"
+      - "src/helper-code.py"
+    engine: "python"
+    function: "main"
+    entry: 'src/welcome.py'
+```
+Where `engine` is the value specified by the remote runtime environment, `function` is the name of the main entry function in the code and `entry` is the name of the file containing that function.
+
+You would then execute this endpoint to see the code work:
+
+`POST <activator url>/<naan>/<name>/<api version>/<endpoint>`
+
+In this example: `POST <activator url>/hello/neighbor/1.0/welcome`
+##Examples
+An example KO can be found in our [example collection](https://github.com/kgrid-objects/example-collection/releases/latest) here:
+[python/simple/1.0](https://github.com/kgrid-objects/example-collection/releases/latest/download/python-simple-v1.0.zip)
+
+# API for communicating with a remote environment
+
+When using the Proxy Adapter the Activator delegates activation, deployment and request handling for knowledge objects services (KO endpoints) to the remote runtime using the Proxy API.
+
+A Kgrid-enabled runtime can implement a simple API for interacting with the KGrid Activator. Using the REST API, the runtime environment component can register with an Activator, receive activation messages for specific KO endpoints, fetch code and other artifacts to deploy, and handle requests routed to each deployed endpoint in the runtime.
 
 ## Proxy Adapter API (Activator side)
-
-THe `/proxy` base url is reserved for the Proxy Adapter API and can be changed by setting:
-```
-kgrid.adapter.proxy.base={custom-proxy-base}
-```
-Note that changing the proxy base means that runtimes should be configured with or discover the new url locations.
 
 ### Get `/proxy/environments`
 Returns a list of the runtime environments registered with the proxy adapter:
