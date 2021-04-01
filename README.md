@@ -85,7 +85,7 @@ so the V8 Graal Adapter and the Javascript Nashorn Adapter cannot be used simult
 See the [Javascript V8 Adapter](https://github.com/kgrid/javascript-v8-adapter) Readme for more information.
 
 ### Proxy Adapter
-The proxy adapter exposes endpoints which can be to register external runtime environments and make them accessible to execute object paylods.
+The proxy adapter exposes endpoints which can be to register external runtime environments and make them accessible to execute object payloads.
 
 There is a [node external runtime](https://github.com/kgrid/kgrid-node-runtime) that runs objects in the NodeJS environment and a [python runtime](https://github.com/kgrid/kgrid-python-runtime) that runs objects in a native python 3 environment.
 
@@ -133,7 +133,7 @@ Example deployment descriptor:
 #### Pitfalls and current limitations
 
 ### Javascript Nashorn Adapter (no longer in active development)
-The nashorn engine used by this adapter is being removed and use of this adapter is discouraged. Instead use either the js v8 adapter or the proxy adapter.
+The nashorn engine used by this adapter is being removed and use of this adapter is discouraged, instead use either the js v8 adapter or the proxy adapter.
 
 Example deployment descriptor:
 ```yaml
@@ -146,7 +146,7 @@ Example deployment descriptor:
 ### Pitfalls and current limitations
 
 The nashorn adapter transforms javascript arrays to a map with the key for each value set to the value's index in the
-array when it returns the value. Because of this using javascript arrays is discouraged.
+array when it returns the value, because of this using javascript arrays is discouraged.
 
 **It is important to note, that there can be only one adapter of a particular engine supplied to the activator,
 so the V8 Graal Adapter and the Javascript Nashorn Adapter cannot be used simultaneously.
@@ -207,5 +207,5 @@ The adapters utilize Java Services and require that you package your adapter wit
 Create a file in the `resources/META-INF/services` directory called `org.kgrid.adapter.api.Adapter` with a single line that is the fully qualified class name of your adapter eg: `org.kgrid.adapter.mine.MyAdapter`. 
 
 
-You can load your adapter by adding the uri of your built adapter jar file to the comma-seperated list of adapter locations property in the activator, ex:
+You can load your adapter by adding the uri of your built adapter jar file to the comma-separated list of adapter locations property in the activator, ex:
 add the line `kgrid.activator.adapter-locations=file:adapters/myadapter.jar` to the activator's `application.properties` file or supply it as an argument when starting the activator.
