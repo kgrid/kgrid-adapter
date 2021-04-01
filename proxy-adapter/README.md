@@ -31,11 +31,11 @@ a Deployment Specification might look like this:
 /welcome:
   post:
     artifact:
-      - "src/welcome.py"
-      - "src/helper-code.py"
-    engine: "python"
-    function: "main"
-    entry: 'src/welcome.py'
+      - src/welcome.py
+      - src/helper-code.py
+    engine: python
+    function: main
+    entry: src/welcome.py
 ```
 Where `engine` is the value specified by the remote runtime environment, `function` is the name of the main entry function in the code and `entry` is the name of the file containing that function.
 
