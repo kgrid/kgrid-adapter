@@ -7,11 +7,6 @@ Adapters provide a common interface to load & execute code in the Knowledge Grid
 ## Table of Contents
 
 1. [Build This Project](#build-this-project)
-1. [KGrid Adapters](#kgrid-adapters) 
-   1. [Javascript V8 Adapter](#javascript-v8-adapter)
-   1. [Proxy Adapter](#proxy-adapter)
-   1. [Resource Adapter](#resource-adapter)
-   1. [Javascript Nashorn Adapter](#javascript-nashorn-adapter-no-longer-in-active-development)
 1. [Creating a new Adapter](#creating-a-new-adapter)
 
 ## Build This Project
@@ -39,117 +34,6 @@ Unit and Integration tests can be executed via
 ```
 mvn clean test
 ```
-
-## KGrid Adapters
-
-The KGrid team is currently working on several adapters that demonstrate how to run code in different environments and support running objects that use many languages.
-
-### Javascript v8 Adapter
-
-This javascript engine uses the GraalVM javascript engine to run object payloads written in javascript locally.
-Any simple javascript file containing functions can be easily run using this adapter but more complex objects with 
-external dependencies should be bundled into one file. (See the guide on creating a bundled KO.)
-
-Example deployment descriptor:
-```yaml
-  /welcome:
-    artifact:
-      - 'src/welcome.js'
-    engine: 'javascript'
-    function: 'welcome'
-```
-#### Pitfalls and current limitations
-
-Currently the v8 engine cannot return native javascript arrays. You can work around this problem by using javascript objects instead. 
-Or use the graal polyglot methods for creating a java array in javascript: 
-```javascript
-let intArray = Java.type('int[]');
-let iarr = new intArray(3);
-return iarr;
-```
-
-Calling other knowledge grid objects from javascript is supported but limited to passing primitive inputs due to how graal manages contexts.
-You can call another knowledge object from within your object using the code:
-```javascript
-    let executor = context.getExecutor("hello-world/v1.0/welcome");
-    return executor.execute(name);
-```
-Where `hello-world/v1.0/welcome` is the full arkId, version and endpoint name of the endpoint you wish to call and `name` is the input
-you wish to pass to it. **Note that the input can only be a primitive(booleans, numbers or strings) and not an object.** You can work around this by using `JSON.stringify()`
-to convert objects to strings before passing them between methods and `JSON.parse` to convert the JSON back into a string in the receiving object.
-See [issue 631](https://github.com/oracle/graal/issues/631) for the graal project for updates.
-
-**It is important to note, that there can be only one adapter of a particular engine supplied to the activator,
-so the V8 Graal Adapter and the Javascript Nashorn Adapter cannot be used simultaneously.
-
-See the [Javascript V8 Adapter](https://github.com/kgrid/javascript-v8-adapter) Readme for more information.
-
-### Proxy Adapter
-The proxy adapter exposes endpoints which can be to register external runtime environments and make them accessible to execute object payloads.
-
-There is a [node external runtime](https://github.com/kgrid/kgrid-node-runtime) that runs objects in the NodeJS environment and a [python runtime](https://github.com/kgrid/kgrid-python-runtime) that runs objects in a native python 3 environment.
-
-To run objects in a remote environment download, install and run that environment project after starting the activator. 
-Note that the deployment descriptor of a proxy adapter object contains two more fields than a local javascript object:
-```yaml
-/welcome:
-  post:
-    artifact:
-      - 'src/welcome.js'
-    engine: 'node'
-    entry: 'src/welcome.js'
-    function: 'welcome'
-```
-The `engine` field tells the adapter which remote environment the code is run in and the `entry` field specifies the file that contains the main function.
-
-The proxy adapter can run any nodejs or python project that you can run locally by communicating with the associated runtimes.
-
-See the [Proxy Adapter Readme](https://github.com/kgrid/kgrid-adapter/tree/main/proxy-adapter) for more information.
-### Resource Adapter
-
-Example deployment descriptor:
-```yaml
-/welcome:
-  get:
-    artifact: 'src/welcome.js'
-    engine: 'resource'
-```
-
-- The endpoints that the activator exposes to work with this adapter are:
-
-  `
-  GET <activator url>/<naan>/<name>/<api version>/<endpoint>
-  `
-
-  and
-
-  `
-  GET <activator url>/<naan>/<name>/<api version>/<endpoint>/<filename>
-  `
-
-  See the [Resource Adapter Readme](https://github.com/kgrid/resource-adapter) for more information.
-
-
-#### Pitfalls and current limitations
-
-### Javascript Nashorn Adapter (no longer in active development)
-The nashorn engine used by this adapter is being removed and use of this adapter is discouraged, instead use either the js v8 adapter or the proxy adapter.
-
-Example deployment descriptor:
-```yaml
-  /welcome:
-    artifact: 'src/welcome.js'
-    engine: 'javascript'
-    function: 'welcome'
-```
-
-### Pitfalls and current limitations
-
-The nashorn adapter transforms javascript arrays to a map with the key for each value set to the value's index in the
-array when it returns the value, because of this using javascript arrays is discouraged.
-
-**It is important to note, that there can be only one adapter of a particular engine supplied to the activator,
-so the V8 Graal Adapter and the Javascript Nashorn Adapter cannot be used simultaneously.
 
 ## Creating a new Adapter
 Creating new Adapters requires that you implement the Adapter Java API interface which you can find in the `adapter-api` directory.
