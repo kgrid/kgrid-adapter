@@ -62,7 +62,7 @@ public class ProxyAdapter implements Adapter {
         JsonNode runtimeAddress = runtimeDetails.at("/url");
         JsonNode runtimeForceUpdate = runtimeDetails.at("/forceUpdate");
         boolean forceUpdate = false;
-        if(runtimeForceUpdate!=null){
+        if (runtimeForceUpdate != null) {
             forceUpdate = runtimeForceUpdate.asBoolean();
         }
         if (runtimeEngine.isMissingNode() || runtimeEngine.asText().equals("")) {
@@ -74,12 +74,12 @@ public class ProxyAdapter implements Adapter {
             return new ResponseEntity<>(runtimeDetails, HttpStatus.BAD_REQUEST);
         }
         if (runtimes.get(runtimeEngine.asText()) != null) {
-            if(runtimeAddress==runtimes.get(runtimeEngine.asText()).get("url"))
+            if (runtimeAddress == runtimes.get(runtimeEngine.asText()).get("url"))
                 log.info("Overwriting remote address for the " + runtimeEngine + " environment. New address is: " + runtimeAddress);
-            runtimeDetails.put("status","existing runtime");
+            runtimeDetails.put("status", "existing runtime");
             update = forceUpdate;
-         } else {
-            runtimeDetails.put("status","new");
+        } else {
+            runtimeDetails.put("status", "new");
             log.info(
                     "Adding a new remote environment to the registry that can handle "
                             + runtimeEngine
@@ -90,7 +90,7 @@ public class ProxyAdapter implements Adapter {
         runtimes.put(runtimeEngine.asText(), runtimeDetails);
         String thisURL = req.getRequestURL().toString();
         koArtifactsBaseUrl = StringUtils.substringBefore(thisURL, "/proxy/environments");
-        if(update) {
+        if (update) {
             activationContext.refresh(runtimeEngine.asText());
         }
         log.debug("Runtime Registration is completed");
@@ -149,22 +149,23 @@ public class ProxyAdapter implements Adapter {
             HttpHeaders headers = new HttpHeaders();
             headers.add("Content-Type", "application/json");
             HttpEntity<JsonNode> activationReq = new HttpEntity<>(deploymentSpec, headers);
+            long startTime = System.currentTimeMillis();
             JsonNode activationResult =
                     restTemplate.postForObject(remoteServer + "/endpoints", activationReq, JsonNode.class);
+            long endTime = System.currentTimeMillis();
             URL remoteServerUrl =
                     (null == activationResult.get("baseUrl"))
                             ? new URL(remoteServer)
                             : new URL(activationResult.get("baseUrl").asText());
             URL remoteEndpoint = new URL(remoteServerUrl, activationResult.get("uri").asText());
 
+            long time = endTime - startTime;
             log.debug(
-                    "Deployed object with endpoint id "
-                            + endpointURI
-                            + " to the "
-                            + engine
-                            + " runtime and got back an endpoint url of "
-                            + remoteEndpoint.toString()
-                            + " at ");
+                    "Activation result: "
+                            + activationResult
+                            + " time: "
+                            + time
+                            + " milliseconds.");
 
             return new Executor() {
                 @Override
@@ -176,11 +177,11 @@ public class ProxyAdapter implements Adapter {
                                 remoteEndpoint.toString(), executionReq, String.class);
                         try {
                             JsonNode resultJson = new ObjectMapper().readTree(runtimeResult);
-                            if(resultJson.has("result")){
+                            if (resultJson.has("result")) {
                                 return resultJson.get("result");
                             }
                             return resultJson;
-                        } catch (Exception e){
+                        } catch (Exception e) {
                             log.error(e.getMessage());
                         }
                         return runtimeResult;
