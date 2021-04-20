@@ -183,7 +183,7 @@ For example the hello world object returns:
 
 Results from remote runtimes will be parsed as follows:
 
-####1. If the result is valid JSON, and contains the key "result", 
+#### 1. If the result is valid JSON, and contains the key "result", 
 ```json
 {
     "result": "Welcome to Knowledge Grid, Tom",
@@ -211,7 +211,7 @@ only the field "result" will be returned:
 Welcome to Knowledge Grid, Tom
 ``` 
 
-####2. If the result is valid JSON, but does not contain the key "result",
+#### 2. If the result is valid JSON, but does not contain the key "result",
 ```json
 {
   "greeting": "Welcome to Knowledge Grid, Tom"
@@ -224,7 +224,7 @@ Welcome to Knowledge Grid, Tom
 }
 ``` 
 
-####3. If the result is not valid JSON, the raw result will be returned to the activator.
+#### 3. If the result is not valid JSON, the raw result will be returned to the activator.
 ```text
 Welcome to Knowledge Grid, Tom
 ``` 
