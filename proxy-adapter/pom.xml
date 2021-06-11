@@ -5,12 +5,12 @@
     <parent>
         <groupId>org.kgrid</groupId>
         <artifactId>kgrid-adapter</artifactId>
-        <version>1.1.1-SNAPSHOT</version>
+        <version>1.1.1</version>
     </parent>
 
     <!-- The Basics -->
     <artifactId>proxy-adapter</artifactId>
-    <version>1.1.1-SNAPSHOT</version>
+    <version>1.1.1</version>
     <packaging>jar</packaging>
 
     <!-- More Project Information -->
@@ -21,7 +21,7 @@
         <url>https://github.com/kgrid/kgrid-adapter</url>
         <connection>scm:git:https://github.com/kgrid/kgrid-adapter.git</connection>
         <developerConnection>scm:git:https://github.com/kgrid/kgrid-adapter.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>kgrid-adapter-1.1.1</tag>
     </scm>
 
     <distributionManagement>
@@ -39,7 +39,7 @@
         <dependency>
             <groupId>org.kgrid</groupId>
             <artifactId>adapter-api</artifactId>
-            <version>1.1.1-SNAPSHOT</version>
+            <version>1.1.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
