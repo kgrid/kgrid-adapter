@@ -26,7 +26,7 @@ class ExecutorTest {
 
   @Test
   void executeUsingRequest() {
-    ClientRequest request = new ClientRequest("hello, bob");
+    ClientRequest request = new ClientRequest("hello, bob", null, null);
     final String result = (String) ex.execute(request);
     assertEquals("hello, bob", result);
   }
@@ -40,14 +40,14 @@ class ExecutorTest {
       }
     };
 
-    ClientRequest request = new ClientRequest("Hello, Bob");
+    ClientRequest request = new ClientRequest("Hello, Bob", null, null);
     assertEquals("Hello, Bob", rhex.execute(request));
   }
 
   @Test
   void executeLegacyExecutorUsingRequestHandlingExecutor() {
-    RequestHandlingExecutor rhex =
-        (RequestHandlingExecutor) new Executor() {
+    Executor rhex =
+        new Executor() {
 
           @Override
           public Object execute(Object input, String contentType) {
@@ -56,7 +56,7 @@ class ExecutorTest {
         };
 
 
-    ClientRequest request = new ClientRequest("Hello, Bob");
+    ClientRequest request = new ClientRequest("Hello, Bob", null, null);
     assertEquals("Hello, Bob", rhex.execute(request));
   }
 

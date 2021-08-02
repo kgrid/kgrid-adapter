@@ -1,9 +1,11 @@
 package org.kgrid.adapter.api;
 
-@Deprecated
-public interface Executor extends RequestHandlingExecutor{
+public interface Executor {
 
-  Object execute(Object input, String contentType);
+  @Deprecated
+  default Object execute(Object input, String contentType) {
+    throw new UnsupportedOperationException("Don't use me.");
+  }
 
   default Object execute(ClientRequest request) {
     return execute(request.getBody(), "application/json");

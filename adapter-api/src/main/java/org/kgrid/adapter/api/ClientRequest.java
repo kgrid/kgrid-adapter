@@ -1,20 +1,20 @@
 package org.kgrid.adapter.api;
 
-public class ClientRequest {
+import java.net.URI;
 
-  public Object getBody() {
-    return body;
-  }
+public class ClientRequest {
 
   private final Object body;
   private final String contentType;
+  private final URI url;
 
-  public ClientRequest(Object body) {
-    this(body, "application/json");
-  }
-
-  public ClientRequest(Object body, String contentType) {
+  public ClientRequest(Object body, String contentType, URI url) {
     this.body = body;
     this.contentType = contentType;
+    this.url = url;
+  }
+
+  public Object getBody() {
+    return body;
   }
 }
