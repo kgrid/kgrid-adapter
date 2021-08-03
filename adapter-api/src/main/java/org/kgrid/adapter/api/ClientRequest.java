@@ -1,28 +1,51 @@
 package org.kgrid.adapter.api;
 
 import java.net.URI;
+import java.util.Map;
 
 public class ClientRequest {
 
-  private final Object body;
-  private final String contentType;
-  private final URI url;
+  private  Object body;
+  private  URI url;
+  private  Map<String, String> headers;
+  private  String httpMethod;
 
-  public ClientRequest(Object body, String contentType, URI url) {
+  public ClientRequest(Object body, URI url, Map<String,String> headers, String httpMethod ) {
     this.body = body;
-    this.contentType = contentType;
     this.url = url;
+    this.headers = headers;
+    this.httpMethod = httpMethod;
   }
 
   public Object getBody() {
     return body;
   }
 
-  public String getContentType() {
-    return contentType;
+  public void setBody(Object body) {
+    this.body = body;
   }
 
   public URI getUrl() {
     return url;
+  }
+
+  public void setUrl(URI url) {
+    this.url = url;
+  }
+
+  public Map<String, String> getHeaders() {
+    return headers;
+  }
+
+  public void setHeaders(Map<String,String> headers){
+    this.headers = headers;
+  }
+
+  public String getHttpMethod() {
+    return httpMethod;
+  }
+
+  public void setHttpMethod(String httpMethod){
+    this.httpMethod = httpMethod;
   }
 }

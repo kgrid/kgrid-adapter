@@ -7,19 +7,32 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
 class ExecutorTest {
 
-    public static final String INPUT = "input";
-    public static final String CONTENT_TYPE = "application/json";
-    public static final URI URI = java.net.URI.create("uri");
-    public static final String OUTPUT = "output";
+    private static final String INPUT = "input";
+    private static final String CONTENT_TYPE = "application/json";
+    private static final String ACCEPT = "application/json";
+    private final Map<String,String> httpHeaders = new HashMap<>();
+    private static final URI URI = java.net.URI.create("uri");
+    private static final String OUTPUT = "output";
+    private static final String HTTP_METHOD = "POST";
     private Executor ex;
     private ClientRequest clientRequest;
+    private final ClientRequestBuilder clientRequestBuilder = new ClientRequestBuilder();
 
     @BeforeEach
     void setUp() {
-        clientRequest = new ClientRequest(INPUT, CONTENT_TYPE, URI);
+        httpHeaders.put("Content-Type",CONTENT_TYPE);
+        httpHeaders.put("Accept",ACCEPT);
+        clientRequest = clientRequestBuilder
+                .body(INPUT)
+                .headers(httpHeaders)
+                .url(URI)
+                .httpMethod(HTTP_METHOD)
+                .build();
         ex = new Executor() {
             @Override
             public Object execute(ClientRequest clientRequest) {
