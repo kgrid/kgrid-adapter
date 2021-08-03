@@ -9,22 +9,22 @@ public class ClientRequestBuilder {
     private Map<String, String> headers;
     private String httpMethod;
 
-    ClientRequestBuilder body(Object body) {
+    public ClientRequestBuilder body(Object body) {
         this.body = body;
         return this;
     }
 
-    ClientRequestBuilder url(URI url) {
+    public ClientRequestBuilder url(URI url) {
         this.url = url;
         return this;
     }
 
-    ClientRequestBuilder headers(Map<String, String> headers) {
+    public ClientRequestBuilder headers(Map<String, String> headers) {
         this.headers = headers;
         return this;
     }
 
-    ClientRequestBuilder httpMethod(String httpMethod) {
+    public ClientRequestBuilder httpMethod(String httpMethod) {
         this.httpMethod = httpMethod;
         return this;
     }
