@@ -17,4 +17,12 @@ public class ClientRequest {
   public Object getBody() {
     return body;
   }
+
+  public String getContentType() {
+    return contentType;
+  }
+
+  public URI getUrl() {
+    return url;
+  }
 }

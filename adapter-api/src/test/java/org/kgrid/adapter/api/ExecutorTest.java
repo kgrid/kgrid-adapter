@@ -3,61 +3,58 @@ package org.kgrid.adapter.api;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.net.URI;
 
 class ExecutorTest {
 
-  private Executor ex;
+    public static final String INPUT = "input";
+    public static final String CONTENT_TYPE = "application/json";
+    public static final URI URI = java.net.URI.create("uri");
+    public static final String OUTPUT = "output";
+    private Executor ex;
+    private ClientRequest clientRequest;
 
-  @BeforeEach
-  void setUp() {
-    ex = new Executor() {
-      public Object execute(Object input, String contentType) {
-        return input;
-      }
-    };
-  }
-
-  @Test
-  void legacyExecute() {
-    final String result = (String) ex.execute("hello, bob", "Content-Type: application/json");
-    assertEquals("hello, bob", result);
-  }
-
-  @Test
-  void executeUsingRequest() {
-    ClientRequest request = new ClientRequest("hello, bob", null, null);
-    final String result = (String) ex.execute(request);
-    assertEquals("hello, bob", result);
-  }
-
-  @Test
-  void executeUsingRequestHandlingExecutor() {
-    RequestHandlingExecutor rhex = new RequestHandlingExecutor() {
-      @Override
-      public Object execute(ClientRequest request) {
-        return request.getBody();
-      }
-    };
-
-    ClientRequest request = new ClientRequest("Hello, Bob", null, null);
-    assertEquals("Hello, Bob", rhex.execute(request));
-  }
-
-  @Test
-  void executeLegacyExecutorUsingRequestHandlingExecutor() {
-    Executor rhex =
-        new Executor() {
-
-          @Override
-          public Object execute(Object input, String contentType) {
-            return input;
-          }
+    @BeforeEach
+    void setUp() {
+        clientRequest = new ClientRequest(INPUT, CONTENT_TYPE, URI);
+        ex = new Executor() {
+            @Override
+            public Object execute(ClientRequest clientRequest) {
+                return OUTPUT;
+            }
         };
+    }
 
+    @Test
+    @DisplayName("Execute using client request returns appropriately")
+    void executeUsingRequest() {
+        String result = (String)ex.execute(clientRequest);
+        assertEquals(OUTPUT, result);
+    }
 
-    ClientRequest request = new ClientRequest("Hello, Bob", null, null);
-    assertEquals("Hello, Bob", rhex.execute(request));
-  }
+    @Test
+    @DisplayName("Executing Legacy Executor with request uses default request handling executor")
+    void executeLegacyExecutorUsingRequestHandlingExecutor_UsesDefaultRequestHandling() {
+        Executor executor =
+                new Executor() {
 
+                    @Override
+                    public Object execute(Object input, String contentType) {
+                        return OUTPUT;
+                    }
+                };
+        assertEquals(OUTPUT, executor.execute(clientRequest));
+    }
+
+    @Test
+    @DisplayName("Legacy Execute throws unsupported operation exception")
+    void legacyExecute() {
+        UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class, () -> {
+            ex.execute(INPUT, CONTENT_TYPE);
+        });
+        assertEquals("This Executor type is no longer supported, please use the ClientRequest Class as input", exception.getMessage());
+    }
 }
