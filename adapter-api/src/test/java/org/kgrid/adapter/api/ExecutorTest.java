@@ -7,7 +7,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
+import java.net.http.HttpHeaders;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 class ExecutorTest {
@@ -15,7 +17,6 @@ class ExecutorTest {
     private static final String INPUT = "input";
     private static final String CONTENT_TYPE = "application/json";
     private static final String ACCEPT = "application/json";
-    private final Map<String,String> httpHeaders = new HashMap<>();
     private static final URI URI = java.net.URI.create("uri");
     private static final String OUTPUT = "output";
     private static final String HTTP_METHOD = "POST";
@@ -25,8 +26,11 @@ class ExecutorTest {
 
     @BeforeEach
     void setUp() {
-        httpHeaders.put("Content-Type",CONTENT_TYPE);
-        httpHeaders.put("Accept",ACCEPT);
+        Map<String, List<String>> headerMap = Map.of(
+                "content-type", List.of(CONTENT_TYPE),
+                "accept", List.of(ACCEPT)
+        );
+        HttpHeaders httpHeaders = HttpHeaders.of(headerMap, (k, v) -> true);
         clientRequest = clientRequestBuilder
                 .body(INPUT)
                 .headers(httpHeaders)
@@ -44,7 +48,7 @@ class ExecutorTest {
     @Test
     @DisplayName("Execute using client request returns appropriately")
     void executeUsingRequest() {
-        String result = (String)ex.execute(clientRequest);
+        String result = (String) ex.execute(clientRequest);
         assertEquals(OUTPUT, result);
     }
 

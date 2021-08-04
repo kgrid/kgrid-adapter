@@ -1,16 +1,17 @@
 package org.kgrid.adapter.api;
 
 import java.net.URI;
+import java.net.http.HttpHeaders;
 import java.util.Map;
 
 public class ClientRequest {
 
   private  Object body;
   private  URI url;
-  private  Map<String, String> headers;
+  private HttpHeaders headers;
   private  String httpMethod;
 
-  public ClientRequest(Object body, URI url, Map<String,String> headers, String httpMethod ) {
+  public ClientRequest(Object body, URI url, HttpHeaders headers, String httpMethod ) {
     this.body = body;
     this.url = url;
     this.headers = headers;
@@ -33,11 +34,11 @@ public class ClientRequest {
     this.url = url;
   }
 
-  public Map<String, String> getHeaders() {
+  public HttpHeaders getHeaders() {
     return headers;
   }
 
-  public void setHeaders(Map<String,String> headers){
+  public void setHeaders(HttpHeaders headers){
     this.headers = headers;
   }
 
