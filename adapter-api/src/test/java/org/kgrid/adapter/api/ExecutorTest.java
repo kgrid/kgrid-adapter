@@ -7,8 +7,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
-import java.net.http.HttpHeaders;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,10 +28,9 @@ class ExecutorTest {
                 "content-type", List.of(CONTENT_TYPE),
                 "accept", List.of(ACCEPT)
         );
-        HttpHeaders httpHeaders = HttpHeaders.of(headerMap, (k, v) -> true);
         clientRequest = clientRequestBuilder
                 .body(INPUT)
-                .headers(httpHeaders)
+                .headers(headerMap)
                 .url(URI)
                 .httpMethod(HTTP_METHOD)
                 .build();

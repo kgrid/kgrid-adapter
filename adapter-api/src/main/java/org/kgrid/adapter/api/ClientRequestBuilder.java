@@ -2,6 +2,8 @@ package org.kgrid.adapter.api;
 
 import java.net.URI;
 import java.net.http.HttpHeaders;
+import java.util.List;
+import java.util.Map;
 
 public class ClientRequestBuilder {
     private Object body;
@@ -21,6 +23,11 @@ public class ClientRequestBuilder {
 
     public ClientRequestBuilder headers(HttpHeaders headers) {
         this.headers = headers;
+        return this;
+    }
+
+    public ClientRequestBuilder headers(Map<String, List<String>> headers) {
+        this.headers = HttpHeaders.of(headers, (k,v) -> true);
         return this;
     }
 
