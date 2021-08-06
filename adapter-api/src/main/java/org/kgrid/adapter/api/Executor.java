@@ -3,11 +3,11 @@ package org.kgrid.adapter.api;
 public interface Executor {
 
   @Deprecated
-  default Object execute(Object input, String contentType) {
+  default ExecutorResponse execute(Object input, String contentType) {
     throw new UnsupportedOperationException("This Executor type is no longer supported, please use the ClientRequest Class as input");
   }
 
-  default Object execute(ClientRequest request) {
-    return execute(request.getBody(), "application/json");
+  default ExecutorResponse execute(ClientRequest request) {
+    return execute(request.getBody(), request.getHeaders().firstValue("content-type").get());
   }
 }
