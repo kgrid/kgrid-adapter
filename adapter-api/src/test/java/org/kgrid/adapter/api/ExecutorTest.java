@@ -19,7 +19,7 @@ class ExecutorTest {
     private static final URI URI = java.net.URI.create("uri");
     private static final String HTTP_METHOD = "POST";
     private ClientRequest clientRequest;
-    private final ClientRequestBuilder clientRequestBuilder = new ClientRequestBuilder();
+    private final ClientRequest.Builder clientRequestBuilder = new ClientRequest.Builder();
     private Map<String, List<String>> responseHeaders;
 
     @BeforeEach
