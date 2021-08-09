@@ -11,6 +11,6 @@ public interface Executor {
 
   default ExecutorResponse execute(ClientRequest request) {
     Object result = execute(request.getBody(), request.getHeaders().firstValue("content-type").get());
-    return new ExecutorResponse(result,new HashMap<>());
+    return new ExecutorResponse(result,new HashMap<>(), request);
   }
 }

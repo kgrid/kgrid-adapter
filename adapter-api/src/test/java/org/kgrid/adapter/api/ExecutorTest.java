@@ -46,7 +46,7 @@ class ExecutorTest {
         Executor executor = new Executor() {
             @Override
             public ExecutorResponse execute(ClientRequest clientRequest) {
-                return new ExecutorResponse(OUTPUT, responseHeaders);
+                return new ExecutorResponse(OUTPUT, responseHeaders, clientRequest);
             }
         };
         ExecutorResponse executorResponse = executor.execute(clientRequest);
@@ -61,10 +61,11 @@ class ExecutorTest {
         Executor executor = new Executor() {
             @Override
             public ExecutorResponse execute(ClientRequest clientRequest) {
-                return new ExecutorResponse(resultBody, responseHeaders);
+                return new ExecutorResponse(resultBody, responseHeaders, clientRequest);
             }
         };
         ExecutorResponse executorResponse = executor.execute(clientRequest);
+        assertEquals(clientRequest, executorResponse.getClientRequest());
         assertEquals(resultBody, executorResponse.getBody());
         assertEquals(RESPONSE_CONTENT_TYPE, (executorResponse.getHeaders().get("content-type")).get(0));
     }
@@ -76,10 +77,11 @@ class ExecutorTest {
         Executor executor = new Executor() {
             @Override
             public ExecutorResponse execute(ClientRequest clientRequest) {
-                return new ExecutorResponse(resultBody, responseHeaders);
+                return new ExecutorResponse(resultBody, responseHeaders, clientRequest);
             }
         };
         ExecutorResponse executorResponse = executor.execute(clientRequest);
+        assertEquals(clientRequest, executorResponse.getClientRequest());
         assertEquals(resultBody, executorResponse.getBody());
         assertEquals(RESPONSE_CONTENT_TYPE, (executorResponse.getHeaders().get("content-type")).get(0));
     }
@@ -106,7 +108,7 @@ class ExecutorTest {
                 new Executor() {
                     @Override
                     public ExecutorResponse execute(ClientRequest clientRequest) {
-                        return new ExecutorResponse(OUTPUT, responseHeaders);
+                        return new ExecutorResponse(OUTPUT, responseHeaders, clientRequest);
                     }
                 };
         UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
