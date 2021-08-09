@@ -91,13 +91,12 @@ class ExecutorTest {
                 new Executor() {
 
                     @Override
-                    public ExecutorResponse execute(Object input, String contentType) {
-                        return new ExecutorResponse(OUTPUT, responseHeaders);
+                    public Object execute(Object input, String contentType) {
+                        return OUTPUT;
                     }
                 };
-        ExecutorResponse executorResponse = executor.execute(clientRequest);
-        assertEquals(OUTPUT, executorResponse.getBody());
-        assertEquals(RESPONSE_CONTENT_TYPE, (executorResponse.getHeaders().get("content-type")).get(0));
+        ExecutorResponse result = executor.execute(clientRequest);
+        assertEquals(OUTPUT, result.getBody());
     }
 
     @Test
