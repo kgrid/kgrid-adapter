@@ -39,7 +39,8 @@
         <dependency>
             <groupId>org.kgrid</groupId>
             <artifactId>adapter-api</artifactId>
-            <version>1.1.2-SNAPSHOT</version>
+            <version>1.1.1</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
